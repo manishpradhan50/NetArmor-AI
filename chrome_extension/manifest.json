@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "NetArmor AI Shield",
+  "version": "1.0",
+  "description": "Real-time AI detection for malicious websites and phishing.",
+  "permissions": ["activeTab", "tabs"],
+  "host_permissions": [
+    "http://127.0.0.1:8000/*",
+    "http://*/*",
+    "https://*/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

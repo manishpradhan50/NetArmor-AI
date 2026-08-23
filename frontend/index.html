@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NetArmor AI - Phishing & Spam Detector</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo-badge">🛡️ NetArmor AI</div>
+      <h1>Automated Phishing & Email Threat Detection</h1>
+      <p>Powered by NLP (TF-IDF) & XGBoost Machine Learning Engine</p>
+    </header>
+
+    <div class="grid">
+      <!-- Website Scanner Card -->
+      <div class="card">
+        <div class="card-header">
+          <h2>🌐 URL Structural Scanner</h2>
+          <span class="sub">Analyzes domain anomalies & lexical vectors</span>
+        </div>
+        <div class="card-body">
+          <input type="text" id="urlInput" placeholder="e.g. http://secure-update-bank@192.168.1.1/login">
+          <button id="scanUrlBtn" onclick="analyzeURL()">Scan Website URL</button>
+
+          <div id="urlResult" class="result-box hidden">
+            <div class="score-display" id="urlScore">--%</div>
+            <div id="urlBadge" class="badge">Checking</div>
+            <div class="reasons-box">
+              <strong>Detection Flags:</strong>
+              <ul id="urlFlags"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email NLP Scanner Card -->
+      <div class="card">
+        <div class="card-header">
+          <h2>✉️ Email Content NLP Scanner</h2>
+          <span class="sub">TF-IDF Vectorization for urgency & scam patterns</span>
+        </div>
+        <div class="card-body">
+          <textarea id="emailInput" rows="5" placeholder="Paste the raw body text of the suspicious email here..."></textarea>
+          <button id="scanEmailBtn" onclick="analyzeEmail()">Analyze Email Text</button>
+
+          <div id="emailResult" class="result-box hidden">
+            <div class="score-display" id="emailScore">--%</div>
+            <div id="emailBadge" class="badge">Checking</div>
+            <div class="reasons-box">
+              <strong>Verdict:</strong>
+              <p id="emailVerdictText" style="font-size: 13px; margin-top: 5px; color: #cbd5e1;"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Credits Footer -->
+    <footer>
+      <p>Minor Project | Department of Computer Science & Applications (BCA)</p>
+      <p>Team: Manish Pradhan (24BCA014) • Sriyasri Rajguru (24BCA007) • Suvam Nahak (24BCA089)</p>
+    </footer>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
