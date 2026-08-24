@@ -3,67 +3,161 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NetArmor AI - Phishing & Spam Detector</title>
-  <link rel="stylesheet" href="style.css">
+  <title>NetArmor AI - Cyber Threat Defense</title>
+  <link rel="stylesheet" href="home.css">
 </head>
 <body>
-  <div class="container">
-    <header>
-      <div class="logo-badge">🛡️ NetArmor AI</div>
-      <h1>Automated Phishing & Email Threat Detection</h1>
-      <p>Powered by NLP (TF-IDF) & XGBoost Machine Learning Engine</p>
-    </header>
 
-    <div class="grid">
-      <!-- Website Scanner Card -->
-      <div class="card">
-        <div class="card-header">
-          <h2>🌐 URL Structural Scanner</h2>
-          <span class="sub">Analyzes domain anomalies & lexical vectors</span>
-        </div>
-        <div class="card-body">
-          <input type="text" id="urlInput" placeholder="e.g. http://secure-update-bank@192.168.1.1/login">
-          <button id="scanUrlBtn" onclick="analyzeURL()">Scan Website URL</button>
-
-          <div id="urlResult" class="result-box hidden">
-            <div class="score-display" id="urlScore">--%</div>
-            <div id="urlBadge" class="badge">Checking</div>
-            <div class="reasons-box">
-              <strong>Detection Flags:</strong>
-              <ul id="urlFlags"></ul>
-            </div>
-          </div>
-        </div>
+  <!-- Cyber Skeleton Preloader Overlay -->
+  <div id="skeletonLoader" class="skeleton-overlay">
+    <div class="skeleton-container">
+      <div class="skeleton-shield-wrapper">
+        <div class="skeleton-radar-pulse"></div>
+        <div class="skeleton-shield-icon">🛡️</div>
       </div>
-
-      <!-- Email NLP Scanner Card -->
-      <div class="card">
-        <div class="card-header">
-          <h2>✉️ Email Content NLP Scanner</h2>
-          <span class="sub">TF-IDF Vectorization for urgency & scam patterns</span>
-        </div>
-        <div class="card-body">
-          <textarea id="emailInput" rows="5" placeholder="Paste the raw body text of the suspicious email here..."></textarea>
-          <button id="scanEmailBtn" onclick="analyzeEmail()">Analyze Email Text</button>
-
-          <div id="emailResult" class="result-box hidden">
-            <div class="score-display" id="emailScore">--%</div>
-            <div id="emailBadge" class="badge">Checking</div>
-            <div class="reasons-box">
-              <strong>Verdict:</strong>
-              <p id="emailVerdictText" style="font-size: 13px; margin-top: 5px; color: #cbd5e1;"></p>
-            </div>
-          </div>
-        </div>
+      <div class="skeleton-shimmer-bar"></div>
+      <div class="skeleton-text" id="skeletonStatus">INITIALIZING NEURAL DEFENSE ENGINE...</div>
+      
+      <!-- Diagnostic Skeleton Trace Bars -->
+      <div class="skeleton-trace-box">
+        <div class="trace-line skeleton-pulse"></div>
+        <div class="trace-line short skeleton-pulse"></div>
+        <div class="trace-line medium skeleton-pulse"></div>
       </div>
     </div>
-
-    <!-- Team Credits Footer -->
-    <footer>
-      <p>Minor Project | Department of Computer Science & Applications (BCA)</p>
-      <p>Team: Manish Pradhan (24BCA014) • Sriyasri Rajguru (24BCA007) • Suvam Nahak (24BCA089)</p>
-    </footer>
   </div>
-  <script src="script.js"></script>
+
+  <!-- Background Dynamic Canvas & Cyber Beams -->
+  <div class="tunnel-container">
+    <canvas id="particleCanvas"></canvas>
+    <div class="laser-scanner"></div>
+    <div class="neon-line top-left"></div>
+    <div class="neon-line top-right"></div>
+    <div class="neon-line bottom-left"></div>
+    <div class="neon-line bottom-right"></div>
+    <div class="cyber-grid" id="cyberGrid"></div>
+    <div class="radial-center-glow"></div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <a href="#home" class="nav-logo">🛡️ NetArmor AI</a>
+
+    <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle navigation">
+      <span class="bar bar1"></span>
+      <span class="bar bar2"></span>
+      <span class="bar bar3"></span>
+    </button>
+
+    <nav class="nav-menu" id="navMenu">
+      <div class="nav-links">
+        <a href="#home" class="nav-link active">Home</a>
+        <a href="#services" class="nav-link">Services</a>
+        <a href="#about" class="nav-link">About Us</a>
+      </div>
+      <a href="detect.html" class="nav-cta">Launch Scanner →</a>
+    </nav>
+  </header>
+
+  <!-- Section 1: Home (Hero) -->
+  <section class="hero-section" id="home">
+    <div class="badge-hero">🛡️ NETARMOR AI DEFENSE HUB</div>
+    <h1 class="hero-title">Automated Phishing &<br><span class="neon-text">Cyber Threat Detection</span></h1>
+    <p class="hero-description">
+      Next-generation security platform powered by TF-IDF Vectorization and XGBoost ML Engine[cite: 1, 2]. Protect your network from deceptive URLs and manipulative phishing scams in real time[cite: 1, 2].
+    </p>
+    <div class="hero-actions">
+      <a href="detect.html" class="btn-get-started" id="getStartedBtn">Get Started →</a>
+      <a href="#services" class="btn-explore">Explore Services</a>
+    </div>
+  </section>
+
+  <!-- Section 2: Services -->
+  <section class="services-section" id="services">
+    <div class="section-heading">
+      <h2>Our Security Services</h2>
+      <p>Real-time threat diagnostics powered by Machine Learning and NLP[cite: 1, 2]</p>
+    </div>
+
+    <div class="services-grid">
+      <div class="service-card">
+        <div class="service-icon">🌐</div>
+        <h3>URL Structural Inspection</h3>
+        <p>Extracts lexical signals, subdomain depth, raw IP presence, and spoofed keywords to identify malicious web links before you visit[cite: 1, 2].</p>
+        <a href="detect.html?tab=url" class="service-btn">Test URL Scanner →</a>
+      </div>
+
+      <div class="service-card">
+        <div class="service-icon">✉️</div>
+        <h3>Email Content NLP Analysis</h3>
+        <p>Uses TF-IDF Vectorization and XGBoost to analyze message bodies for urgent demands, fraud signatures, and social engineering patterns[cite: 1, 2].</p>
+        <a href="detect.html?tab=email" class="service-btn">Test Email NLP →</a>
+      </div>
+
+      <div class="service-card">
+        <div class="service-icon">⚡</div>
+        <h3>Chrome Shield Integration</h3>
+        <p>Lightweight Manifest V3 browser extension evaluating visited links and active emails directly in your browser with dynamic risk alerts[cite: 1, 2].</p>
+        <span class="service-badge">Manifest V3 Extension</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: About Us -->
+  <section class="about-section" id="about">
+    <div class="section-heading">
+      <h2>About NetArmor AI</h2>
+      <p>Department of Computer Science & Applications (BCA) Minor Project[cite: 1, 2]</p>
+    </div>
+
+    <div class="about-overview">
+      <p>
+        <strong>NetArmor AI</strong> is an intelligent cybersecurity system designed to counter zero-day phishing attacks and social engineering scams[cite: 1, 2]. By combining structural URL heuristics with Natural Language Processing, it provides dual-layer protection across web dashboards and browser extensions[cite: 1, 2].
+      </p>
+    </div>
+
+    <div class="team-grid">
+      <div class="team-card">
+        <div class="avatar-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+          </svg>
+        </div>
+        <h3>Manish Pradhan</h3>
+        <span class="team-role">Team Lead & Backend/API[cite: 1, 2]</span>
+        <span class="team-roll">Roll No: 24BCA014[cite: 1, 2]</span>
+      </div>
+
+      <div class="team-card">
+        <div class="avatar-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+          </svg>
+        </div>
+        <h3>Sriyasri Rajguru</h3>
+        <span class="team-role">ML & NLP Pipeline[cite: 1, 2]</span>
+        <span class="team-roll">Roll No: 24BCA007[cite: 1, 2]</span>
+      </div>
+
+      <div class="team-card">
+        <div class="avatar-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+          </svg>
+        </div>
+        <h3>Suvam Nahak</h3>
+        <span class="team-role">Frontend & Extension[cite: 1, 2]</span>
+        <span class="team-roll">Roll No: 24BCA089[cite: 1, 2]</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>Minor Project | Department of Computer Science & Applications (BCA)[cite: 1, 2]</p>
+    <p>Team: Manish Pradhan (24BCA014) • Sriyasri Rajguru (24BCA007) • Suvam Nahak (24BCA089)[cite: 1, 2]</p>
+  </footer>
+
+  <script src="home.js"></script>
 </body>
 </html>

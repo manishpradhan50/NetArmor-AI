@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Threat Scanner - NetArmor AI</title>
+  <link rel="stylesheet" href="detect.css">
+</head>
+<body>
+
+  <!-- Cyber Skeleton Preloader Overlay -->
+  <div id="skeletonLoader" class="skeleton-overlay">
+    <div class="skeleton-container">
+      <div class="skeleton-shield-wrapper">
+        <div class="skeleton-radar-pulse"></div>
+        <div class="skeleton-shield-icon">🛡️</div>
+      </div>
+      <div class="skeleton-shimmer-bar"></div>
+      <div class="skeleton-text" id="skeletonStatus">CONNECTING SECURE SCANNER ENGINE...</div>
+      
+      <div class="skeleton-trace-box">
+        <div class="trace-line skeleton-pulse"></div>
+        <div class="trace-line short skeleton-pulse"></div>
+        <div class="trace-line medium skeleton-pulse"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Animated Background -->
+  <div class="tunnel-container">
+    <div class="laser-scanner"></div>
+    <div class="neon-line top-left"></div>
+    <div class="neon-line top-right"></div>
+    <div class="neon-line bottom-left"></div>
+    <div class="neon-line bottom-right"></div>
+    <div class="cyber-grid"></div>
+    <div class="radial-center-glow"></div>
+  </div>
+
+  <!-- Top Navigation -->
+  <nav class="top-nav">
+    <a href="index.html" class="nav-brand">🛡️ NetArmor AI</a>
+    <div class="nav-links">
+      <a href="index.html">← Back to Home</a>
+    </div>
+  </nav>
+
+  <!-- Scanner Hub Card -->
+  <main class="scanner-section">
+    <div class="dashboard-card">
+      
+      <!-- Operation Tab Navigation -->
+      <div class="tab-header">
+        <button class="tab-btn active" id="tab-btn-url" onclick="switchTab('url')">
+          🌐 Website URL Scanner
+        </button>
+        <button class="tab-btn" id="tab-btn-email" onclick="switchTab('email')">
+          ✉️ Email Content NLP Scanner
+        </button>
+      </div>
+
+      <!-- Tab 1: URL Scanner -->
+      <div id="url-tab" class="tab-content active">
+        <div class="input-header">
+          <h3>URL Structural & Lexical Analysis</h3>
+          <p>Inspects domain anomalies, subdomains, and suspicious redirect tokens</p>
+        </div>
+        <div class="input-group">
+          <input type="text" id="urlInput" placeholder="e.g. http://secure-update-bank@192.168.1.1/login">
+          <button id="scanUrlBtn" class="btn-action" onclick="analyzeURL()">
+            <span class="btn-text">Scan Website URL</span>
+            <span class="btn-spinner hidden"></span>
+          </button>
+        </div>
+
+        <!-- URL Active Scan Loading State -->
+        <div id="urlScanningState" class="scan-loading-card hidden">
+          <div class="scan-radar-line"></div>
+          <div class="scan-status-text">
+            <span class="scan-pulse-dot"></span>
+            <span id="urlScanStatus">EXTRACTING STRUCTURAL VECTORS & LEXICAL ANOMALIES...</span>
+          </div>
+          <div class="scan-skeleton-bars">
+            <div class="scan-skeleton-bar bar-1"></div>
+            <div class="scan-skeleton-bar bar-2"></div>
+            <div class="scan-skeleton-bar bar-3"></div>
+          </div>
+        </div>
+
+        <!-- URL Result Panel -->
+        <div id="urlResult" class="result-box hidden">
+          <div class="result-top">
+            <span class="score-display" id="urlScore">0%</span>
+            <span id="urlBadge" class="badge">Checking</span>
+          </div>
+          <div class="reasons-box">
+            <strong>Detection Flags & Vector Breakdown:</strong>
+            <ul id="urlFlags"></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Email NLP Scanner -->
+      <div id="email-tab" class="tab-content">
+        <div class="input-header">
+          <h3>Email NLP Semantic Analysis</h3>
+          <p>TF-IDF Vectorization for urgency triggers and social engineering signatures</p>
+        </div>
+        <div class="input-group">
+          <textarea id="emailInput" rows="6" placeholder="Paste the raw body text of the suspicious email here..."></textarea>
+          <button id="scanEmailBtn" class="btn-action" onclick="analyzeEmail()">
+            <span class="btn-text">Analyze Email Text</span>
+            <span class="btn-spinner hidden"></span>
+          </button>
+        </div>
+
+        <!-- Email Active Scan Loading State -->
+        <div id="emailScanningState" class="scan-loading-card hidden">
+          <div class="scan-radar-line"></div>
+          <div class="scan-status-text">
+            <span class="scan-pulse-dot"></span>
+            <span id="emailScanStatus">RUNNING TF-IDF VECTORIZER & XGBOOST INFERENCE...</span>
+          </div>
+          <div class="scan-skeleton-bars">
+            <div class="scan-skeleton-bar bar-1"></div>
+            <div class="scan-skeleton-bar bar-2"></div>
+            <div class="scan-skeleton-bar bar-3"></div>
+          </div>
+        </div>
+
+        <!-- Email Result Panel -->
+        <div id="emailResult" class="result-box hidden">
+          <div class="result-top">
+            <span class="score-display" id="emailScore">0%</span>
+            <span id="emailBadge" class="badge">Checking</span>
+          </div>
+          <div class="reasons-box">
+            <strong>NLP Verdict Breakdown:</strong>
+            <p id="emailVerdictText" style="margin-top: 6px;"></p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <p>Minor Project | Department of Computer Science & Applications (BCA)</p>
+  </footer>
+
+  <script src="detect.js"></script>
+</body>
+</html>
