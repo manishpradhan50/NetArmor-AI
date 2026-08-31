@@ -371,3 +371,81 @@ document.addEventListener("DOMContentLoaded", () => {
   checkBackendHealth();
   setInterval(checkBackendHealth, 5000);
 });
+
+// =========================================================
+// ArmorBot AI Assistant Integration
+// =========================================================
+const chatToggleBtn = document.getElementById("chatToggleBtn");
+const chatWindow = document.getElementById("chatWindow");
+const closeChatBtn = document.getElementById("closeChatBtn");
+const sendChatBtn = document.getElementById("sendChatBtn");
+const chatInput = document.getElementById("chatInput");
+const chatMessages = document.getElementById("chatMessages");
+
+if (chatToggleBtn && chatWindow) {
+  chatToggleBtn.addEventListener("click", () => {
+    chatWindow.classList.toggle("hidden");
+    if (!chatWindow.classList.contains("hidden") && chatInput) {
+      chatInput.focus();
+    }
+  });
+}
+
+if (closeChatBtn && chatWindow) {
+  closeChatBtn.addEventListener("click", () => {
+    chatWindow.classList.add("hidden");
+  });
+}
+
+async function handleSendMessage() {
+  if (!chatInput) return;
+  const userText = chatInput.value.trim();
+  if (!userText) return;
+
+  // Render User Message
+  const userBubble = document.createElement("div");
+  userBubble.className = "user-msg";
+  userBubble.innerText = userText;
+  chatMessages.appendChild(userBubble);
+  chatInput.value = "";
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  // Render Placeholder Shimmer Bubble
+  const botBubble = document.createElement("div");
+  botBubble.className = "bot-msg loading-shimmer";
+  botBubble.innerText = "⚡ ArmorBot is analyzing...";
+  chatMessages.appendChild(botBubble);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  try {
+    const response = await fetch(`${API_BASE}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: userText })
+    });
+
+    if (!response.ok) throw new Error("API request failed");
+    const data = await response.json();
+
+    botBubble.className = "bot-msg";
+    botBubble.innerText = data.reply || "No response received.";
+  } catch (error) {
+    botBubble.className = "bot-msg";
+    botBubble.innerText = "⚠️ Unable to reach ArmorBot core. Ensure FastAPI is running and your GEMINI_API_KEY is configured.";
+  }
+
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+if (sendChatBtn) {
+  sendChatBtn.addEventListener("click", handleSendMessage);
+}
+
+if (chatInput) {
+  chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  });
+}

@@ -1,9 +1,14 @@
 import os
 import sys
 import joblib
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from google import genai
+
+# Load environment variables automatically from root .env
+load_dotenv()
 
 # Add project root to sys.path to resolve ml_pipeline imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -23,6 +28,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Initialize Google Gemini Client with loaded API key
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+ai_client = genai.Client(api_key=GEMINI_API_KEY)
+
+# Knowledge base for NetArmor AI Assistant
+NETARMOR_KNOWLEDGE = """
+You are 'ArmorBot', the virtual cybersecurity AI assistant for the NetArmor AI platform.
+NetArmor AI is an automated phishing website and email threat detection system built as a BCA Minor Project.
+
+Key Technical Modules:
+1. Website URL Scanner: Inspects lexical/structural vectors including '@' symbols, raw IP hosts, deep subdomain levels, suspicious keywords, and protocol security (HTTPS).
+2. Email Content NLP Scanner: Uses TF-IDF Vectorization and an XGBoost Classifier trained to flag manipulative phrasing, scam urgency, and credential harvesting.
+3. Google Chrome Extension (Manifest V3): Provides real-time page URL evaluation and email threat inspection in the browser.
+4. Project Team: Manish Pradhan (Lead, Backend & Integration), Sriyasri Rajguru (ML & NLP Pipeline), Suvam Nahak (Frontend & Chrome Extension).
+
+Your Role:
+- Answer user questions politely, clearly, and concisely.
+- Explain how the scanners detect phishing links and spam.
+- Provide cybersecurity guidance and tips on recognizing social engineering.
+"""
+
 # Paths to trained model artifacts
 VECTORIZER_PATH = os.path.join("ml_pipeline", "saved_models", "tfidf_vectorizer.pkl")
 MODEL_PATH = os.path.join("ml_pipeline", "saved_models", "email_model.pkl")
@@ -33,6 +59,9 @@ class URLRequest(BaseModel):
 
 class EmailRequest(BaseModel):
     text: str
+
+class ChatRequest(BaseModel):
+    message: str
 
 @app.get("/")
 def health_check():
@@ -51,7 +80,6 @@ def predict_url(payload: URLRequest):
     features = extract_url_features(payload.url)
     raw = features[0]
     
-    # Calculate rule & lexical threat score
     score = 10.0
     reasons = []
 
@@ -90,7 +118,6 @@ def predict_email(payload: EmailRequest):
     if not payload.text or payload.text.strip() == "":
         raise HTTPException(status_code=400, detail="Email body text cannot be empty.")
 
-    # Load artifacts and run NLP inference
     vectorizer = joblib.load(VECTORIZER_PATH)
     model = joblib.load(MODEL_PATH)
 
@@ -103,3 +130,18 @@ def predict_email(payload: EmailRequest):
         "risk_percentage": spam_prob,
         "verdict": verdict
     }
+
+@app.post("/api/chat")
+def chat_with_assistant(payload: ChatRequest):
+    """ArmorBot Interactive AI Assistant endpoint."""
+    if not payload.message or payload.message.strip() == "":
+        raise HTTPException(status_code=400, detail="Message cannot be empty.")
+
+    try:
+        response = ai_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=f"{NETARMOR_KNOWLEDGE}\n\nUser Question: {payload.message}\nArmorBot Response:"
+        )
+        return {"reply": response.text}
+    except Exception as e:
+        return {"reply": "I'm having trouble connecting to my AI service right now. Please verify your API key."}

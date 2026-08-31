@@ -172,10 +172,46 @@
 
   <footer>
     <div class="footer-content">
-      <p class="footer-main">NetArmor AI • Automated Phishing & Cyber Threat Detection System[cite: 2]</p>
-      <p class="footer-sub">Minor Project | Department of Computer Science & Applications (BCA)[cite: 2]</p>
+      <p class="footer-main">NetArmor AI • Automated Phishing & Cyber Threat Detection System[cite: 2, 3]</p>
+      <p class="footer-sub">Minor Project | Department of Computer Science & Applications (BCA)[cite: 2, 3]</p>
     </div>
   </footer>
+
+  <!-- Floating AI Assistant Chatbot Widget -->
+  <div id="chatWidget" class="chat-widget">
+    <button id="chatToggleBtn" class="chat-toggle-btn" aria-label="Open AI Assistant">
+      <span class="bot-icon">💬</span>
+      <span class="chat-badge">AI</span>
+    </button>
+
+    <div id="chatWindow" class="chat-window hidden">
+      <div class="chat-header">
+        <div class="chat-header-info">
+          <div class="chat-avatar-shield">🛡️</div>
+          <div>
+            <h4>ArmorBot AI</h4>
+            <span class="online-status"><span class="status-dot-mini"></span> Online • NetArmor Assistant</span>
+          </div>
+        </div>
+        <button id="closeChatBtn" class="chat-close" aria-label="Close Chat">✕</button>
+      </div>
+
+      <div id="chatMessages" class="chat-messages">
+        <div class="bot-msg">
+          👋 Hi! I'm <strong>ArmorBot</strong>. Ask me anything about how NetArmor AI scans URLs, detects phishing emails, or protects against cyber threats[cite: 1, 2]!
+        </div>
+      </div>
+
+      <div class="chat-input-area">
+        <input type="text" id="chatInput" placeholder="Ask ArmorBot about NetArmor AI..." autocomplete="off" />
+        <button id="sendChatBtn" aria-label="Send Message">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script src="detect.js"></script>
 </body>
