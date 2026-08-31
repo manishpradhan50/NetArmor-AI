@@ -83,6 +83,84 @@ body {
   scrollbar-color: var(--neon-emerald) var(--bg-deep);
 }
 
+/* Navbar Brand Link */
+.nav-logo {
+  font-size: 1.18rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+  transition: transform 0.2s ease;
+}
+
+.nav-logo:hover {
+  transform: translateY(-1px);
+}
+
+/* Glowing Shield Container for Logo */
+.logo-shield-badge {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(0, 255, 136, 0.08);
+  border: 1px solid var(--border-neon);
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.25), inset 0 0 8px rgba(0, 255, 136, 0.1);
+  overflow: hidden;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.nav-logo:hover .logo-shield-badge {
+  border-color: var(--neon-green);
+  box-shadow: 0 0 22px rgba(0, 255, 136, 0.5), inset 0 0 12px rgba(0, 255, 136, 0.2);
+}
+
+/* High-Resolution Brand Logo Image */
+.brand-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 3px;
+  filter: drop-shadow(0 0 6px rgba(0, 255, 136, 0.4));
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-logo:hover .brand-logo-img {
+  transform: scale(1.08);
+}
+
+/* Preloader Shield Image Upgrade */
+.skeleton-shield-wrapper {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.skeleton-logo-img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  z-index: 2;
+  filter: drop-shadow(0 0 16px rgba(0, 255, 136, 0.6));
+  animation: floatShield 2s infinite ease-in-out;
+}
+
+@keyframes floatShield {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-6px) scale(1.03); }
+}
+
+
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--bg-deep); }
 ::-webkit-scrollbar-thumb {
