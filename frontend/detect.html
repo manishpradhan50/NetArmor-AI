@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,44 +8,86 @@
 </head>
 <body>
 
-  <!-- Cyber Skeleton Preloader Overlay -->
-  <div id="skeletonLoader" class="skeleton-overlay">
-    <div class="skeleton-container">
-      <div class="skeleton-shield-wrapper">
-        <div class="skeleton-radar-pulse"></div>
-        <div class="skeleton-shield-icon">🛡️</div>
-      </div>
-      <div class="skeleton-shimmer-bar"></div>
-      <div class="skeleton-text" id="skeletonStatus">CONNECTING SECURE SCANNER ENGINE...</div>
+  <!-- Cybernetic Radar & Binary Matrix Preloader Overlay -->
+  <div id="skeletonLoader" class="cyber-radar-overlay">
+    <div class="radar-scan-wrapper">
       
-      <div class="skeleton-trace-box">
-        <div class="trace-line skeleton-pulse"></div>
-        <div class="trace-line short skeleton-pulse"></div>
-        <div class="trace-line medium skeleton-pulse"></div>
+      <!-- Central Circular Radar Core -->
+      <div class="radar-circle-outer">
+        <div class="radar-ring ring-1"></div>
+        <div class="radar-ring ring-2"></div>
+        <div class="radar-ring ring-3"></div>
+        <div class="radar-crosshair-x"></div>
+        <div class="radar-crosshair-y"></div>
+        <div class="radar-sweep-beam"></div>
+        
+        <!-- Center Cyber Hexagon & Core Icon -->
+        <div class="radar-core-hex">
+          <span class="radar-core-icon">⚡</span>
+        </div>
       </div>
+
+      <!-- Live Diagnostics Stream & Progress Counter -->
+      <div class="radar-telemetry">
+        <div class="radar-telemetry-header">
+          <span class="telemetry-tag">SECURITY INFERENCE RADAR</span>
+          <span class="telemetry-counter" id="telemetryCounter">00%</span>
+        </div>
+
+        <div class="radar-progress-bar">
+          <div class="radar-progress-fill" id="radarProgressFill"></div>
+        </div>
+
+        <div class="radar-status-text" id="skeletonStatus">
+          INITIALIZING ZERO-DAY THREAT ENGINE...
+        </div>
+
+        <!-- Matrix Binary Stream Data Bits -->
+        <div class="matrix-data-stream">
+          <span class="matrix-bit">HEX: 0x7F 0x00 0x01</span>
+          <span class="matrix-bit">NLP: VEC_READY</span>
+          <span class="matrix-bit">XGB: CALIBRATED</span>
+        </div>
+      </div>
+
     </div>
   </div>
 
-  <!-- Animated Background -->
+  <!-- Background Dynamic Network Canvas & Cyber Matrix Grid -->
   <div class="tunnel-container">
+    <canvas id="particleCanvas"></canvas>
     <div class="laser-scanner"></div>
-    <div class="neon-line top-left"></div>
-    <div class="neon-line top-right"></div>
-    <div class="neon-line bottom-left"></div>
-    <div class="neon-line bottom-right"></div>
-    <div class="cyber-grid"></div>
+    <div class="cyber-grid" id="cyberGrid"></div>
     <div class="radial-center-glow"></div>
   </div>
 
-  <!-- Top Navigation -->
-  <nav class="top-nav">
-    <a href="index.html" class="nav-brand">🛡️ NetArmor AI</a>
-    <div class="nav-links">
-      <a href="index.html">← Back to Home</a>
-    </div>
-  </nav>
+  <!-- Top Navigation Bar -->
+  <div class="navbar-wrapper">
+    <header class="navbar">
+      <a href="index.html" class="nav-logo">
+        <div class="logo-shield-badge">🛡️</div>
+        <span>NetArmor<span class="logo-accent">AI</span></span>
+      </a>
 
-  <!-- Scanner Hub Card -->
+      <div class="nav-right">
+        <!-- Live Backend Health Status Pill -->
+        <div class="system-status-pill status-checking" id="backendStatusPill" title="FastAPI Backend Health Status">
+          <span class="status-dot" id="backendStatusDot"></span>
+          <span id="backendStatusText">Checking...</span>
+        </div>
+
+        <!-- Dark / Light Mode Switcher -->
+        <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle Theme">
+          <span class="sun-icon">☀️</span>
+          <span class="moon-icon">🌙</span>
+        </button>
+
+        <a href="index.html" class="nav-back-link">← Back to Home</a>
+      </div>
+    </header>
+  </div>
+
+  <!-- Scanner Dashboard Section -->
   <main class="scanner-section">
     <div class="dashboard-card">
       
@@ -65,32 +107,24 @@
           <h3>URL Structural & Lexical Analysis</h3>
           <p>Inspects domain anomalies, subdomains, and suspicious redirect tokens</p>
         </div>
+        
         <div class="input-group">
-          <input type="text" id="urlInput" placeholder="e.g. http://secure-update-bank@192.168.1.1/login">
+          <div class="input-wrapper">
+            <span class="input-prefix">TARGET URL</span>
+            <input type="text" id="urlInput" placeholder="e.g. http://secure-update-bank@192.168.1.1/login">
+          </div>
           <button id="scanUrlBtn" class="btn-action" onclick="analyzeURL()">
-            <span class="btn-text">Scan Website URL</span>
-            <span class="btn-spinner hidden"></span>
+            <span>Scan Website URL</span>
+            <span class="btn-glow"></span>
           </button>
         </div>
 
-        <!-- URL Active Scan Loading State -->
-        <div id="urlScanningState" class="scan-loading-card hidden">
-          <div class="scan-radar-line"></div>
-          <div class="scan-status-text">
-            <span class="scan-pulse-dot"></span>
-            <span id="urlScanStatus">EXTRACTING STRUCTURAL VECTORS & LEXICAL ANOMALIES...</span>
-          </div>
-          <div class="scan-skeleton-bars">
-            <div class="scan-skeleton-bar bar-1"></div>
-            <div class="scan-skeleton-bar bar-2"></div>
-            <div class="scan-skeleton-bar bar-3"></div>
-          </div>
-        </div>
-
-        <!-- URL Result Panel -->
         <div id="urlResult" class="result-box hidden">
           <div class="result-top">
-            <span class="score-display" id="urlScore">0%</span>
+            <div class="result-score-wrap">
+              <span class="score-label">Risk Probability</span>
+              <span class="score-display" id="urlScore">0%</span>
+            </div>
             <span id="urlBadge" class="badge">Checking</span>
           </div>
           <div class="reasons-box">
@@ -106,37 +140,29 @@
           <h3>Email NLP Semantic Analysis</h3>
           <p>TF-IDF Vectorization for urgency triggers and social engineering signatures</p>
         </div>
+
         <div class="input-group">
-          <textarea id="emailInput" rows="6" placeholder="Paste the raw body text of the suspicious email here..."></textarea>
+          <div class="input-wrapper textarea-wrapper">
+            <span class="input-prefix">RAW MESSAGE BODY</span>
+            <textarea id="emailInput" rows="6" placeholder="Paste the raw body text of the suspicious email here..."></textarea>
+          </div>
           <button id="scanEmailBtn" class="btn-action" onclick="analyzeEmail()">
-            <span class="btn-text">Analyze Email Text</span>
-            <span class="btn-spinner hidden"></span>
+            <span>Analyze Email Text</span>
+            <span class="btn-glow"></span>
           </button>
         </div>
 
-        <!-- Email Active Scan Loading State -->
-        <div id="emailScanningState" class="scan-loading-card hidden">
-          <div class="scan-radar-line"></div>
-          <div class="scan-status-text">
-            <span class="scan-pulse-dot"></span>
-            <span id="emailScanStatus">RUNNING TF-IDF VECTORIZER & XGBOOST INFERENCE...</span>
-          </div>
-          <div class="scan-skeleton-bars">
-            <div class="scan-skeleton-bar bar-1"></div>
-            <div class="scan-skeleton-bar bar-2"></div>
-            <div class="scan-skeleton-bar bar-3"></div>
-          </div>
-        </div>
-
-        <!-- Email Result Panel -->
         <div id="emailResult" class="result-box hidden">
           <div class="result-top">
-            <span class="score-display" id="emailScore">0%</span>
+            <div class="result-score-wrap">
+              <span class="score-label">Phishing Confidence</span>
+              <span class="score-display" id="emailScore">0%</span>
+            </div>
             <span id="emailBadge" class="badge">Checking</span>
           </div>
           <div class="reasons-box">
             <strong>NLP Verdict Breakdown:</strong>
-            <p id="emailVerdictText" style="margin-top: 6px;"></p>
+            <p id="emailVerdictText" style="margin-top: 8px;"></p>
           </div>
         </div>
       </div>
@@ -145,7 +171,10 @@
   </main>
 
   <footer>
-    <p>Minor Project | Department of Computer Science & Applications (BCA)</p>
+    <div class="footer-content">
+      <p class="footer-main">NetArmor AI • Automated Phishing & Cyber Threat Detection System[cite: 2]</p>
+      <p class="footer-sub">Minor Project | Department of Computer Science & Applications (BCA)[cite: 2]</p>
+    </div>
   </footer>
 
   <script src="detect.js"></script>
