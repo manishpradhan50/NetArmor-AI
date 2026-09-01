@@ -8,9 +8,10 @@ from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from google import genai
+from google.genai import types
 from pypdf import PdfReader
 
-# 1. Explicitly load environment variables from .env
+# Explicitly load local .env if present
 load_dotenv()
 
 # Add project root to sys.path to resolve ml_pipeline imports
@@ -30,10 +31,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# 2. Initialize Google Gemini Client
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-ai_client = genai.Client(api_key=GEMINI_API_KEY)
 
 # Knowledge base for NetArmor AI Assistant
 NETARMOR_KNOWLEDGE = """
@@ -268,15 +265,22 @@ def chat_with_assistant(payload: ChatRequest):
     if not payload.message or payload.message.strip() == "":
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
 
+    # 1. Fetch key dynamically from environment
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return {"reply": "Server error: GEMINI_API_KEY environment variable is not configured on Render."}
+
     try:
-        chat = ai_client.chats.create(
+        # 2. Instantiate client per request with active API key
+        client = genai.Client(api_key=api_key)
+        chat = client.chats.create(
             model="gemini-2.5-flash",
-            config={
-                "system_instruction": NETARMOR_KNOWLEDGE
-            }
+            config=types.GenerateContentConfig(
+                system_instruction=NETARMOR_KNOWLEDGE
+            )
         )
         response = chat.send_message(payload.message)
         return {"reply": response.text}
     except Exception as e:
-        print(f"Chatbot Error: {e}")
-        return {"reply": "I'm having trouble connecting right now. Please verify your network connection and API key."}
+        print(f"Chatbot Exception Log: {e}")
+        return {"reply": f"Unable to reach Gemini API: {str(e)}"}
