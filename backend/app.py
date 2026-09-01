@@ -3,11 +3,15 @@ import os
 import re
 import sys
 import joblib
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from google import genai
 from pypdf import PdfReader
+
+# 1. Explicitly load environment variables from .env
+load_dotenv()
 
 # Add project root to sys.path to resolve ml_pipeline imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -27,8 +31,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Google Gemini Client
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY_HERE")
+# 2. Initialize Google Gemini Client
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 
 # Knowledge base for NetArmor AI Assistant
@@ -156,6 +160,9 @@ def predict_message(payload: MessageRequest):
     extracted_urls = re.findall(url_pattern, text)
 
     # 2. NLP Semantic Scoring
+    if not os.path.exists(VECTORIZER_PATH) or not os.path.exists(MODEL_PATH):
+        raise HTTPException(status_code=500, detail="Model files not found. Run train_email_model.py first.")
+
     vectorizer = joblib.load(VECTORIZER_PATH)
     model = joblib.load(MODEL_PATH)
     transformed = vectorizer.transform([text])
@@ -212,16 +219,19 @@ async def scan_document(file: UploadFile = File(...)):
         extracted_text += text + " "
 
         if "/Annots" in page:
-            for annot in page["/Annots"]:
-                try:
+            try:
+                for annot in page["/Annots"]:
                     obj = annot.get_object()
                     if "/A" in obj and "/URI" in obj["/A"]:
                         extracted_urls.append(obj["/A"]["/URI"])
-                except Exception:
-                    continue
+            except Exception:
+                pass
 
-    if "/JavaScript" in reader.trailer or "/JS" in reader.trailer:
-        has_javascript = True
+    try:
+        if "/JavaScript" in reader.trailer or "/JS" in reader.trailer:
+            has_javascript = True
+    except Exception:
+        pass
 
     nlp_score = 0.0
     if extracted_text.strip() and os.path.exists(VECTORIZER_PATH) and os.path.exists(MODEL_PATH):
@@ -259,10 +269,14 @@ def chat_with_assistant(payload: ChatRequest):
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
 
     try:
-        response = ai_client.models.generate_content(
+        chat = ai_client.chats.create(
             model="gemini-2.5-flash",
-            contents=f"{NETARMOR_KNOWLEDGE}\n\nUser Question: {payload.message}\nArmorBot Response:"
+            config={
+                "system_instruction": NETARMOR_KNOWLEDGE
+            }
         )
+        response = chat.send_message(payload.message)
         return {"reply": response.text}
-    except Exception:
+    except Exception as e:
+        print(f"Chatbot Error: {e}")
         return {"reply": "I'm having trouble connecting right now. Please verify your network connection and API key."}
