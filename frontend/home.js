@@ -274,7 +274,7 @@ if (previewCard && window.innerWidth >= 768) {
 }
 
 // --- 7. Real-Time FastAPI Backend Health Check ---
-const BACKEND_API = "http://127.0.0.1:8000";
+const BACKEND_API = "https://netarmor-ai.onrender.com";
 
 async function checkBackendHealth() {
   const pill = document.getElementById("backendStatusPill");

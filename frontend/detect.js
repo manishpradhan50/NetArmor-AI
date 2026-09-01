@@ -2,7 +2,7 @@
    NetArmor AI - Scanner Hub Engine (detect.js)
    ========================================================= */
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "https://netarmor-ai.onrender.com";
 let selectedPdfFile = null;
 
 // Helper to delay execution for visual scanner feedback
