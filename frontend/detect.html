@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Threat Scanner - NetArmor AI</title>
+  <link rel="icon" type="image/png" href="images/logo.png">
+  <link rel="shortcut icon" type="image/png" href="images/logo.png">
   <link rel="stylesheet" href="detect.css">
 </head>
 <body>
@@ -93,7 +95,7 @@
   <main class="scanner-section">
     <div class="dashboard-card">
       
-      <!-- Operation Tab Navigation -->
+      <!-- Operation Tab Navigation (4 Modules) -->
       <div class="tab-header">
         <button class="tab-btn active" id="tab-btn-url" onclick="switchTab('url')">
           🌐 Website URL Scanner
@@ -101,13 +103,19 @@
         <button class="tab-btn" id="tab-btn-email" onclick="switchTab('email')">
           ✉️ Email Content NLP Scanner
         </button>
+        <button class="tab-btn" id="tab-btn-message" onclick="switchTab('message')">
+          💬 SMS / Smishing Scanner
+        </button>
+        <button class="tab-btn" id="tab-btn-document" onclick="switchTab('document')">
+          📄 PDF Document Scanner
+        </button>
       </div>
 
       <!-- Tab 1: URL Scanner -->
       <div id="url-tab" class="tab-content active">
         <div class="input-header">
           <h3>URL Structural &amp; Lexical Analysis</h3>
-          <p>Inspects domain anomalies, subdomains, and suspicious redirect tokens</p>
+          <p>Inspects domain anomalies, subdomains, raw IP hosts, and suspicious redirect tokens</p>
         </div>
         
         <div class="input-group">
@@ -169,6 +177,77 @@
         </div>
       </div>
 
+      <!-- Tab 3: SMS & Social Media Message Scanner -->
+      <div id="message-tab" class="tab-content">
+        <div class="input-header">
+          <h3>SMS &amp; Social Media Smishing Scanner</h3>
+          <p>Short-text NLP pattern matching, mobile scam triggers (OTP/KYC), and embedded redirect link extraction</p>
+        </div>
+
+        <div class="input-group">
+          <div class="input-wrapper textarea-wrapper">
+            <span class="input-prefix">MESSAGE TEXT</span>
+            <textarea id="messageInput" rows="4" placeholder="Paste SMS, WhatsApp, Telegram, or social media message content here..."></textarea>
+          </div>
+          <button id="scanMessageBtn" class="btn-action" onclick="analyzeMessage()">
+            <span>Scan Message Content</span>
+            <span class="btn-glow"></span>
+          </button>
+        </div>
+
+        <div id="messageResult" class="result-box hidden">
+          <div class="result-top">
+            <div class="result-score-wrap">
+              <span class="score-label">Smishing Risk Score</span>
+              <span class="score-display" id="messageScore">0%</span>
+            </div>
+            <span id="messageBadge" class="badge">Checking</span>
+          </div>
+          <div class="reasons-box">
+            <strong>Threat Intelligence Flags:</strong>
+            <ul id="messageFlags"></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: PDF Document Threat Scanner -->
+      <div id="document-tab" class="tab-content">
+        <div class="input-header">
+          <h3>PDF Document Threat Scanner</h3>
+          <p>Extracts internal text for NLP screening, scans embedded URIs, and flags executable JavaScript triggers</p>
+        </div>
+
+        <div class="input-group">
+          <div class="dropzone-box" id="dropZone" onclick="document.getElementById('docFileInput').click()">
+            <input type="file" id="docFileInput" accept=".pdf" style="display: none;" onchange="handleFileSelected(event)" />
+            <div class="dropzone-content">
+              <span class="dropzone-icon">📁</span>
+              <h4 id="dropZoneTitle">Drag &amp; Drop PDF Document Here</h4>
+              <p id="dropZoneSub">or click to browse files (.pdf supported)</p>
+            </div>
+          </div>
+          <button id="scanDocBtn" class="btn-action" onclick="analyzeDocument()">
+            <span>Scan Uploaded PDF</span>
+            <span class="btn-glow"></span>
+          </button>
+        </div>
+
+        <div id="docResult" class="result-box hidden">
+          <div class="result-top">
+            <div class="result-score-wrap">
+              <span class="score-label">Document Risk Index</span>
+              <span class="score-display" id="docScore">0%</span>
+            </div>
+            <span id="docBadge" class="badge">Checking</span>
+          </div>
+          <div class="reasons-box">
+            <strong>Document Structural &amp; Semantic Audit:</strong>
+            <ul id="docFlags"></ul>
+            <div id="docExtractedUrls" style="margin-top: 10px; font-size: 0.85rem; color: #38bdf8;"></div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
 
@@ -202,7 +281,7 @@
 
       <div id="chatMessages" class="chat-messages">
         <div class="bot-msg">
-          👋 Hi! I'm <strong>ArmorBot</strong>. Ask me anything about how NetArmor AI scans URLs, detects phishing emails, or protects against cyber threats[cite: 1, 2]!
+          👋 Hi! I'm <strong>ArmorBot</strong>. Ask me anything about how NetArmor AI scans URLs, detects phishing emails, checks SMS messages, or inspects documents[cite: 1, 2]!
         </div>
       </div>
 

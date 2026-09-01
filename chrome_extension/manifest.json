@@ -1,15 +1,25 @@
 {
   "manifest_version": 3,
   "name": "NetArmor AI Shield",
-  "version": "1.0",
-  "description": "Real-time AI detection for malicious websites and phishing.",
+  "version": "2.0",
+  "description": "Real-time AI threat detection for active URLs, email text, and mobile smishing messages.",
   "permissions": ["activeTab", "tabs"],
   "host_permissions": [
     "http://127.0.0.1:8000/*",
     "http://*/*",
     "https://*/*"
   ],
+  "icons": {
+    "16": "logo.png",
+    "48": "logo.png",
+    "128": "logo.png"
+  },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "logo.png",
+      "48": "logo.png",
+      "128": "logo.png"
+    }
   }
 }

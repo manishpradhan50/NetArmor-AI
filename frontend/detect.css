@@ -1101,3 +1101,191 @@ footer {
     height: 420px;
   }
 }
+
+
+
+/* --- Styled PDF Upload Dropzone --- */
+.dropzone-box {
+  background: rgba(3, 7, 18, 0.85);
+  border: 2px dashed rgba(0, 255, 136, 0.35);
+  border-radius: 16px;
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dropzone-box:hover,
+.dropzone-box.drag-active {
+  border-color: #00ff88;
+  background: rgba(13, 13, 13, 0.06);
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.18);
+}
+
+.dropzone-icon {
+  font-size: 2.6rem;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.dropzone-content h4 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #fff;
+}
+
+.dropzone-content p {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* =========================================================
+   Mobile Optimization for detect.html (< 768px Viewport)
+   ========================================================= */
+@media (max-width: 768px) {
+  /* 1. Compact Navbar */
+  .navbar-wrapper {
+    top: 10px;
+    padding: 0 12px;
+  }
+
+  .navbar {
+    padding: 8px 14px;
+    border-radius: 16px;
+  }
+
+  .nav-logo {
+    font-size: 1rem;
+    gap: 6px;
+  }
+
+  .logo-shield-badge {
+    width: 26px;
+    height: 26px;
+  }
+
+  /* Hide the status pill on mobile to prevent navbar crowding */
+  .system-status-pill {
+    display: none !important;
+  }
+
+  .nav-back-link {
+    font-size: 0.78rem;
+    padding: 4px 10px;
+  }
+
+  .theme-toggle-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* 2. Compact Scanner Container */
+  .scanner-section {
+    padding: 95px 12px 40px;
+  }
+
+  .dashboard-card {
+    padding: 18px 14px;
+    border-radius: 16px;
+  }
+
+  /* 3. High-Tech 2x2 App Tab Grid */
+  .tab-header {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
+    padding: 6px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+
+  .tab-btn {
+    padding: 10px 6px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    border-radius: 8px;
+    white-space: normal;
+    line-height: 1.25;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  /* 4. Input Header & Text Resizing */
+  .input-header h3 {
+    font-size: 1.15rem;
+    margin-bottom: 4px;
+  }
+
+  .input-header p {
+    font-size: 0.8rem;
+    margin-bottom: 16px;
+    line-height: 1.4;
+  }
+
+  .input-wrapper {
+    padding: 10px 12px;
+  }
+
+  .input-wrapper input,
+  .input-wrapper textarea {
+    font-size: 0.88rem;
+  }
+
+  .btn-action {
+    padding: 12px 18px;
+    font-size: 0.92rem;
+  }
+
+  /* 5. Compact PDF Dropzone */
+  .dropzone-box {
+    padding: 24px 14px;
+    border-radius: 12px;
+  }
+
+  .dropzone-icon {
+    font-size: 2.2rem;
+    margin-bottom: 6px;
+  }
+
+  .dropzone-content h4 {
+    font-size: 0.95rem;
+  }
+
+  .dropzone-content p {
+    font-size: 0.76rem;
+  }
+
+  /* 6. Diagnostic Results Card */
+  .result-box {
+    padding: 16px;
+    margin-top: 18px;
+  }
+
+  .score-display {
+    font-size: 1.5rem;
+  }
+
+  /* 7. Floating Chatbot Mobile Sizing */
+  .chat-widget {
+    bottom: 16px;
+    right: 16px;
+  }
+
+  .chat-toggle-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+  }
+
+  .chat-window {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    bottom: 75px;
+    height: 390px;
+  }
+}

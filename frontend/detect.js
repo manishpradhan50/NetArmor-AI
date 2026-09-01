@@ -3,6 +3,10 @@
    ========================================================= */
 
 const API_BASE = "http://127.0.0.1:8000";
+let selectedPdfFile = null;
+
+// Helper to delay execution for visual scanner feedback
+const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
 // --- 1. Auto-Redirect to index.html on Browser Page Reload ---
 const navEntry = performance.getEntriesByType("navigation")[0];
@@ -46,12 +50,14 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }, 35);
 
-  // Auto-switch tab if redirected with ?tab=email or ?tab=url
+  // Auto-switch tab if redirected with ?tab=email, ?tab=url, ?tab=message, or ?tab=document
   const params = new URLSearchParams(window.location.search);
   const requestedTab = params.get("tab");
-  if (requestedTab === "email") {
-    switchTab("email");
+  if (["url", "email", "message", "document"].includes(requestedTab)) {
+    switchTab(requestedTab);
   }
+
+  setupDropZone();
 });
 
 // --- 3. Dark & Light Mode Theme Switcher ---
@@ -71,24 +77,22 @@ if (themeToggleBtn) {
   });
 }
 
-// --- 4. Interactive Tab Switching ---
+// --- 4. Interactive Tab Switching (4 Modes) ---
 function switchTab(type) {
-  const urlTab = document.getElementById("url-tab");
-  const emailTab = document.getElementById("email-tab");
-  const urlBtn = document.getElementById("tab-btn-url");
-  const emailBtn = document.getElementById("tab-btn-email");
-
-  if (type === "url") {
-    urlTab.classList.add("active");
-    emailTab.classList.remove("active");
-    urlBtn.classList.add("active");
-    emailBtn.classList.remove("active");
-  } else {
-    emailTab.classList.add("active");
-    urlTab.classList.remove("active");
-    emailBtn.classList.add("active");
-    urlBtn.classList.remove("active");
-  }
+  const tabs = ["url", "email", "message", "document"];
+  tabs.forEach((tab) => {
+    const tabContent = document.getElementById(`${tab}-tab`);
+    const tabBtn = document.getElementById(`tab-btn-${tab}`);
+    if (tabContent && tabBtn) {
+      if (tab === type) {
+        tabContent.classList.add("active");
+        tabBtn.classList.add("active");
+      } else {
+        tabContent.classList.remove("active");
+        tabBtn.classList.remove("active");
+      }
+    }
+  });
 }
 
 // --- 5. Interactive Green Topology Canvas Animation ---
@@ -256,11 +260,14 @@ async function analyzeURL() {
   scanBtn.disabled = true;
 
   try {
-    const res = await fetch(`${API_BASE}/api/predict-url`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url })
-    });
+    const [res] = await Promise.all([
+      fetch(`${API_BASE}/api/predict-url`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
+      }),
+      delay(600)
+    ]);
     
     if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
     const data = await res.json();
@@ -304,11 +311,14 @@ async function analyzeEmail() {
   scanBtn.disabled = true;
 
   try {
-    const res = await fetch(`${API_BASE}/api/predict-email`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text })
-    });
+    const [res] = await Promise.all([
+      fetch(`${API_BASE}/api/predict-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      }),
+      delay(600)
+    ]);
 
     if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
     const data = await res.json();
@@ -340,7 +350,163 @@ async function analyzeEmail() {
   }
 }
 
-// --- 8. Live Backend Health Status Poller ---
+// --- 8. SMS & Social Media Smishing Scanner API Caller ---
+async function analyzeMessage() {
+  const msgInput = document.getElementById("messageInput");
+  if (!msgInput) return;
+  const message = msgInput.value.trim();
+  if (!message) return alert("Please enter the SMS or message content to inspect.");
+
+  const scanBtn = document.getElementById("scanMessageBtn");
+  scanBtn.innerText = "Scanning Smishing Vectors...";
+  scanBtn.disabled = true;
+
+  try {
+    const [res] = await Promise.all([
+      fetch(`${API_BASE}/api/predict-message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      }),
+      delay(600)
+    ]);
+
+    if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+    const data = await res.json();
+
+    const box = document.getElementById("messageResult");
+    const score = document.getElementById("messageScore");
+    const badge = document.getElementById("messageBadge");
+    const flags = document.getElementById("messageFlags");
+
+    box.classList.remove("hidden");
+    score.innerText = `${data.risk_percentage}% Smishing Risk`;
+    badge.innerText = data.verdict;
+
+    if (data.risk_percentage >= 50) {
+      score.style.color = "var(--danger)";
+      badge.className = "badge badge-danger";
+    } else {
+      score.style.color = "var(--safe)";
+      badge.className = "badge badge-safe";
+    }
+
+    flags.innerHTML = (data.flags && data.flags.length > 0)
+      ? data.flags.map(f => `<li>${f}</li>`).join("")
+      : "<li>No high-risk smishing or social engineering triggers identified.</li>";
+
+  } catch (err) {
+    alert("Backend server offline. Ensure FastAPI is running on port 8000.");
+  } finally {
+    scanBtn.innerText = "Scan Message Content";
+    scanBtn.disabled = false;
+  }
+}
+
+// --- 9. PDF Document Scanner API Caller & Dropzone Logic ---
+function handleFileSelected(e) {
+  const file = e.target.files[0];
+  if (file) {
+    selectedPdfFile = file;
+    const title = document.getElementById("dropZoneTitle");
+    const sub = document.getElementById("dropZoneSub");
+    if (title) title.innerText = `Selected: ${file.name}`;
+    if (sub) sub.innerText = `${(file.size / 1024).toFixed(1)} KB • Ready for deep scan`;
+  }
+}
+
+function setupDropZone() {
+  const dropZone = document.getElementById("dropZone");
+  if (!dropZone) return;
+
+  ["dragenter", "dragover"].forEach((eventName) => {
+    dropZone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      dropZone.classList.add("drag-active");
+    });
+  });
+
+  ["dragleave", "drop"].forEach((eventName) => {
+    dropZone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("drag-active");
+    });
+  });
+
+  dropZone.addEventListener("drop", (e) => {
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.toLowerCase().endsWith(".pdf")) {
+      selectedPdfFile = file;
+      document.getElementById("dropZoneTitle").innerText = `Selected: ${file.name}`;
+      document.getElementById("dropZoneSub").innerText = `${(file.size / 1024).toFixed(1)} KB • Ready for deep scan`;
+    } else {
+      alert("Only .pdf documents are supported currently.");
+    }
+  });
+}
+
+async function analyzeDocument() {
+  if (!selectedPdfFile) return alert("Please select or drop a PDF file first.");
+
+  const scanBtn = document.getElementById("scanDocBtn");
+  scanBtn.innerText = "Extracting & Scanning PDF...";
+  scanBtn.disabled = true;
+
+  const formData = new FormData();
+  formData.append("file", selectedPdfFile);
+
+  try {
+    const [res] = await Promise.all([
+      fetch(`${API_BASE}/api/scan-document`, {
+        method: "POST",
+        body: formData
+      }),
+      delay(800)
+    ]);
+
+    if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+    const data = await res.json();
+
+    const box = document.getElementById("docResult");
+    const score = document.getElementById("docScore");
+    const badge = document.getElementById("docBadge");
+    const flags = document.getElementById("docFlags");
+    const urlsElem = document.getElementById("docExtractedUrls");
+
+    box.classList.remove("hidden");
+    score.innerText = `${data.risk_percentage}% Document Risk`;
+    badge.innerText = data.verdict;
+
+    if (data.risk_percentage >= 50) {
+      score.style.color = "var(--danger)";
+      badge.className = "badge badge-danger";
+    } else {
+      score.style.color = "var(--safe)";
+      badge.className = "badge badge-safe";
+    }
+
+    flags.innerHTML = (data.flags && data.flags.length > 0)
+      ? data.flags.map(f => `<li>${f}</li>`).join("")
+      : "<li>No executable triggers or malicious signals found inside document.</li>";
+
+    if (urlsElem) {
+      if (data.extracted_urls && data.extracted_urls.length > 0) {
+        urlsElem.innerHTML = `<strong>Embedded Hyperlinks Found (${data.extracted_urls.length}):</strong><br>` +
+          data.extracted_urls.slice(0, 3).map(u => `• ${u}`).join("<br>");
+      } else {
+        urlsElem.innerHTML = "";
+      }
+    }
+
+  } catch (err) {
+    alert("Backend server offline. Ensure FastAPI is running on port 8000.");
+  } finally {
+    scanBtn.innerText = "Scan Uploaded PDF";
+    scanBtn.disabled = false;
+  }
+}
+
+// --- 10. Live Backend Health Status Poller ---
 async function checkBackendHealth() {
   const pill = document.getElementById("backendStatusPill");
   const text = document.getElementById("backendStatusText");
@@ -352,15 +518,18 @@ async function checkBackendHealth() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2500);
 
-    await fetch(`${API_BASE}/docs`, {
+    const res = await fetch(`${API_BASE}/`, {
       method: "GET",
-      mode: "no-cors",
       signal: controller.signal
     });
 
     clearTimeout(timeoutId);
-    pill.className = "system-status-pill status-online";
-    text.innerText = "Online";
+    if (res.ok) {
+      pill.className = "system-status-pill status-online";
+      text.innerText = "Online";
+    } else {
+      throw new Error();
+    }
   } catch (error) {
     pill.className = "system-status-pill status-offline";
     text.innerText = "Offline";
