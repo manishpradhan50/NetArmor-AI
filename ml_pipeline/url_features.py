@@ -5,6 +5,9 @@ def extract_url_features(url: str) -> list:
     """Extract lexical and structural characteristics from a given URL."""
     features = []
     
+    # Ensure scheme exists so urlparse doesn't miss the hostname
+    parsed = urlparse(url if "://" in url else f"http://{url}")
+    
     # 1. URL Length
     features.append(len(url))
     
@@ -22,11 +25,10 @@ def extract_url_features(url: str) -> list:
     features.append(url.count('-'))
     
     # 6. HTTPS scheme check
-    parsed = urlparse(url)
     features.append(1 if parsed.scheme == 'https' else 0)
     
     # 7. Suspicious keyword presence
     suspicious_words = ['login', 'verify', 'update', 'banking', 'secure', 'account', 'free']
     features.append(1 if any(word in url.lower() for word in suspicious_words) else 0)
     
-    return [features]
+    return features

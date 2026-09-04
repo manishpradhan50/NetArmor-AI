@@ -8,7 +8,6 @@ from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from google import genai
-from google.genai import types
 from pypdf import PdfReader
 
 # Explicitly load local .env if present
@@ -54,6 +53,7 @@ Your Role:
 # Paths to trained model artifacts
 VECTORIZER_PATH = os.path.join("ml_pipeline", "saved_models", "tfidf_vectorizer.pkl")
 MODEL_PATH = os.path.join("ml_pipeline", "saved_models", "email_model.pkl")
+URL_MODEL_PATH = os.path.join("ml_pipeline", "saved_models", "url_model.pkl")
 
 # Request Schemas
 class URLRequest(BaseModel):
@@ -77,42 +77,53 @@ def health_check():
     }
 
 # -------------------------------------------------------------
-# 1. URL Structural & Lexical Scanner Endpoint
+# 1. URL Structural & Lexical Scanner Endpoint (Using url_model.pkl)
 # -------------------------------------------------------------
 @app.post("/api/predict-url")
 def predict_url(payload: URLRequest):
-    """URL Structural and Lexical Analysis endpoint."""
+    """URL Machine Learning (XGBoost) + Structural Analysis endpoint."""
     if not payload.url or payload.url.strip() == "":
         raise HTTPException(status_code=400, detail="URL cannot be empty.")
 
+    # 1. Extract feature vector
     features = extract_url_features(payload.url)
-    raw = features[0]
-    
-    score = 10.0
-    reasons = []
+    # Ensure flat 1D vector
+    raw = features[0] if (isinstance(features, list) and isinstance(features[0], list)) else features
 
-    if raw[1] == 1:  # Contains '@'
-        score += 35
+    # 2. Model Inference
+    if os.path.exists(URL_MODEL_PATH):
+        model = joblib.load(URL_MODEL_PATH)
+        # Predict probability of class 1 (Phishing)
+        prob = model.predict_proba([raw])[0][1] * 100
+        risk_percentage = round(float(prob), 2)
+    else:
+        # Fallback heuristic calculation if model file is missing
+        score = 10.0
+        if raw[1] == 1: score += 35
+        if raw[2] == 1: score += 40
+        if raw[3] > 3:  score += 20
+        if raw[6] == 1: score += 25
+        if raw[5] == 0: score += 15
+        risk_percentage = min(score, 99.0)
+
+    # 3. Contextual heuristic explanations
+    reasons = []
+    if raw[1] == 1:
         reasons.append("Contains '@' symbol used in URL obfuscation.")
-    if raw[2] == 1:  # IP Address domain
-        score += 40
+    if raw[2] == 1:
         reasons.append("Uses raw IP address instead of a valid domain name.")
-    if raw[3] > 3:   # Deep subdomains
-        score += 20
+    if raw[3] > 3:
         reasons.append("Abnormal number of subdomains detected.")
-    if raw[6] == 1:  # Phishing keyword match
-        score += 25
+    if raw[6] == 1:
         reasons.append("Contains suspicious credential-harvesting keywords.")
-    if raw[5] == 0:  # No HTTPS
-        score += 15
+    if raw[5] == 0:
         reasons.append("Insecure HTTP protocol.")
 
-    risk_percentage = min(score, 99.0)
     verdict = "Phishing / Malicious" if risk_percentage >= 50.0 else "Safe / Legitimate"
 
     return {
         "target_url": payload.url,
-        "risk_percentage": round(risk_percentage, 2),
+        "risk_percentage": risk_percentage,
         "verdict": verdict,
         "flags": reasons if reasons else ["No high-risk structural anomalies detected."]
     }
@@ -152,11 +163,9 @@ def predict_message(payload: MessageRequest):
     if not text:
         raise HTTPException(status_code=400, detail="Message text cannot be empty.")
 
-    # 1. Regex Link Extraction
     url_pattern = r"(https?://[^\s]+|www\.[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/[^\s]*)"
     extracted_urls = re.findall(url_pattern, text)
 
-    # 2. NLP Semantic Scoring
     if not os.path.exists(VECTORIZER_PATH) or not os.path.exists(MODEL_PATH):
         raise HTTPException(status_code=500, detail="Model files not found. Run train_email_model.py first.")
 
@@ -166,8 +175,6 @@ def predict_message(payload: MessageRequest):
     nlp_prob = float(model.predict_proba(transformed)[0][1] * 100)
 
     flags = []
-
-    # 3. Smishing keyword matching
     smishing_patterns = [r"\botp\b", r"\bkyc\b", r"\bblocked\b", r"\bwin\b", r"\bprize\b", r"\brefund\b", r"\burgent\b", r"\bverify\b"]
     matched_patterns = [p.replace(r"\b", "") for p in smishing_patterns if re.search(p, text, re.IGNORECASE)]
     
@@ -178,7 +185,6 @@ def predict_message(payload: MessageRequest):
     if nlp_prob >= 50.0:
         flags.append(f"NLP model identified social engineering phrasing ({nlp_prob:.1f}% confidence).")
 
-    # Combine heuristic and NLP weighting
     calculated_score = nlp_prob
     if matched_patterns and extracted_urls:
         calculated_score = max(nlp_prob, 78.0)
@@ -265,19 +271,17 @@ def chat_with_assistant(payload: ChatRequest):
     if not payload.message or payload.message.strip() == "":
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
 
-    # 1. Fetch key dynamically from environment
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        return {"reply": "Server error: GEMINI_API_KEY environment variable is not configured on Render."}
+        return {"reply": "Server error: GEMINI_API_KEY environment variable is not configured."}
 
     try:
-        # 2. Instantiate client per request with active API key
         client = genai.Client(api_key=api_key)
         chat = client.chats.create(
             model="gemini-2.5-flash",
-            config=types.GenerateContentConfig(
-                system_instruction=NETARMOR_KNOWLEDGE
-            )
+            config={
+                "system_instruction": NETARMOR_KNOWLEDGE
+            }
         )
         response = chat.send_message(payload.message)
         return {"reply": response.text}
