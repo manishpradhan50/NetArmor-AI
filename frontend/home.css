@@ -324,6 +324,48 @@ body {
   align-items: center;
 }
 
+/* Login Button Styling */
+.nav-btn-login {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 255, 136, 0.4);
+  background: rgba(16, 185, 129, 0.08);
+  color: #00ff88;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.85rem;
+  transition: all 0.25s ease;
+}
+
+.nav-btn-login:hover {
+  background: rgba(0, 255, 136, 0.18);
+  border-color: #00ff88;
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.35);
+  transform: translateY(-1px);
+}
+
+.desktop-only-cta {
+  display: inline-flex;
+}
+
+.mobile-only-cta {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-only-cta {
+    display: none !important;
+  }
+  .mobile-only-cta {
+    display: inline-flex !important;
+    width: 80%;
+    margin-top: 10px;
+  }
+}
+
 /* Moving Indicator Fix */
 .nav-link {
   position: relative;

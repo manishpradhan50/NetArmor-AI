@@ -37,53 +37,59 @@
   </div>
 
   <!-- Enterprise Glass Navbar -->
-  <header class="navbar-wrapper">
-    <div class="navbar">
-      <a href="#home" class="nav-logo">
-        <div class="logo-shield-badge">
-          <img src="images/logo.png" alt="NetArmor AI Logo" class="brand-logo-img">
-        </div>
-        <span>NetArmor<span class="logo-accent">AI</span></span>
-      </a>
-
-      <!-- Navigation Drawer (Desktop + Mobile Drawer) -->
-      <nav class="nav-menu" id="navMenu">
-        <div class="nav-links">
-          <a href="#home" class="nav-link active">Home</a>
-          <a href="#architecture" class="nav-link">Architecture</a>
-          <a href="#services" class="nav-link">Modules</a>
-          <a href="#about" class="nav-link">Team</a>
-        </div>
-        <!-- Mobile Drawer CTA Action -->
-        <a href="detect.html" class="nav-cta mobile-only-cta">Launch Scanner →</a>
-      </nav>
-
-      <!-- Right Desktop Controls -->
-      <div class="nav-right">
-        <!-- Live FastAPI Backend Status Indicator -->
-        <div class="system-status-pill status-checking" id="backendStatusPill" title="FastAPI Backend Health Status">
-          <span class="status-dot" id="backendStatusDot"></span>
-          <span id="backendStatusText">Checking...</span>
-        </div>
-
-        <!-- Dark / Light Mode Switcher -->
-        <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle Theme">
-          <span class="theme-icon sun-icon">☀️</span>
-          <span class="theme-icon moon-icon">🌙</span>
-        </button>
-
-        <!-- Desktop Launch CTA -->
-        <a href="detect.html" class="nav-cta desktop-only-cta">Launch Scanner →</a>
-
-        <!-- Hamburger Button for Mobile -->
-        <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle navigation">
-          <span class="bar bar1"></span>
-          <span class="bar bar2"></span>
-          <span class="bar bar3"></span>
-        </button>
+  <!-- Enterprise Glass Navbar -->
+<header class="navbar-wrapper">
+  <div class="navbar">
+    <a href="#home" class="nav-logo">
+      <div class="logo-shield-badge">
+        <img src="images/logo.png" alt="NetArmor AI Logo" class="brand-logo-img">
       </div>
+      <span>NetArmor<span class="logo-accent">AI</span></span>
+    </a>
+
+    <!-- Navigation Drawer (Desktop + Mobile Drawer) -->
+    <nav class="nav-menu" id="navMenu">
+      <div class="nav-links">
+        <a href="#home" class="nav-link active">Home</a>
+        <a href="#architecture" class="nav-link">Architecture</a>
+        <a href="#services" class="nav-link">Services</a>
+        <a href="#about" class="nav-link">Team</a>
+      </div>
+      
+      <!-- Mobile Drawer Login & Launch CTAs -->
+      <a href="login.html" class="nav-btn-login mobile-only-cta">Login</a>
+      <a href="detect.html" class="nav-cta mobile-only-cta">Launch Scanner →</a>
+    </nav>
+
+    <!-- Right Desktop Controls -->
+    <div class="nav-right">
+      <!-- Live FastAPI Backend Status Indicator -->
+      <div class="system-status-pill status-checking" id="backendStatusPill" title="FastAPI Backend Health Status">
+        <span class="status-dot" id="backendStatusDot"></span>
+        <span id="backendStatusText">Checking...</span>
+      </div>
+
+      <!-- Dark / Light Mode Switcher -->
+      <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="theme-icon sun-icon">☀️</span>
+        <span class="theme-icon moon-icon">🌙</span>
+      </button>
+
+      <!-- Desktop Login CTA -->
+      <a href="login.html" class="nav-btn-login desktop-only-cta">Login</a>
+
+      <!-- Desktop Launch CTA -->
+      <a href="detect.html" class="nav-cta desktop-only-cta">Launch Scanner →</a>
+
+      <!-- Hamburger Button for Mobile -->
+      <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle navigation">
+        <span class="bar bar1"></span>
+        <span class="bar bar2"></span>
+        <span class="bar bar3"></span>
+      </button>
     </div>
-  </header>
+  </div>
+</header>
 
   <!-- Section 1: Hero -->
   <section class="hero-section" id="home">
