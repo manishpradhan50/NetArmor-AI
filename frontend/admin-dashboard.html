@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>
+    NetArmor AI — Admin Dashboard
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="dashboard.css"
+  >
+
+  <!-- Supabase -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  ></script>
+
+  <script src="supabase-config.js"></script>
+
+</head>
+
+
+<body>
+
+  <div class="grid"></div>
+
+
+  <!-- HEADER -->
+
+  <header>
+
+    <a
+      class="brand"
+      href="index.html"
+    >
+      ◆
+      <span>
+        NetArmor <b>AI</b>
+      </span>
+    </a>
+
+
+    <nav>
+
+      <span class="admin">
+        ADMIN CONSOLE
+      </span>
+
+
+      <a
+        href="detect.html"
+        class="scan"
+      >
+        Scanner
+      </a>
+
+
+      <button id="logout">
+        Logout
+      </button>
+
+    </nav>
+
+  </header>
+
+
+  <main>
+
+
+    <!-- WELCOME -->
+
+    <section class="welcome">
+
+      <div>
+
+        <small>
+          SECURITY OPERATIONS CENTER
+        </small>
+
+        <h1>
+          Admin Dashboard
+        </h1>
+
+        <p>
+          Monitor users, scans and platform-wide
+          threat activity.
+        </p>
+
+      </div>
+
+
+      <button
+        class="primary"
+        id="refresh"
+      >
+        ↻ Refresh Data
+      </button>
+
+    </section>
+
+
+    <!-- STATISTICS -->
+
+    <section class="stats">
+
+
+      <div>
+
+        <label>
+          Registered Users
+        </label>
+
+        <strong id="users">
+          0
+        </strong>
+
+        <em>
+          Platform profiles
+        </em>
+
+      </div>
+
+
+      <div>
+
+        <label>
+          Total Scans
+        </label>
+
+        <strong id="total">
+          0
+        </strong>
+
+        <em>
+          All analyses
+        </em>
+
+      </div>
+
+
+      <div class="danger">
+
+        <label>
+          Threats Detected
+        </label>
+
+        <strong id="threats">
+          0
+        </strong>
+
+        <em>
+          Flagged results
+        </em>
+
+      </div>
+
+
+      <div>
+
+        <label>
+          Threat Rate
+        </label>
+
+        <strong id="rate">
+          0%
+        </strong>
+
+        <em>
+          All scans
+        </em>
+
+      </div>
+
+
+    </section>
+
+
+    <!-- ADMIN CONTENT -->
+
+    <section class="cols admincols">
+
+
+      <!-- THREAT ACTIVITY -->
+
+      <article class="panel">
+
+
+        <div class="head">
+
+          <div>
+
+            <small>
+              THREAT INTELLIGENCE
+            </small>
+
+            <h2>
+              Recent Activity
+            </h2>
+
+          </div>
+
+        </div>
+
+
+        <div class="table">
+
+          <table>
+
+            <thead>
+
+              <tr>
+
+                <th>User</th>
+
+                <th>Type</th>
+
+                <th>Target</th>
+
+                <th>Result</th>
+
+                <th>Risk</th>
+
+                <th>Time</th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody id="threatsTable">
+
+              <tr>
+
+                <td
+                  colspan="6"
+                  class="empty"
+                >
+                  No records yet.
+                </td>
+
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </article>
+
+
+      <!-- USERS -->
+
+      <article class="panel">
+
+        <div class="head">
+
+          <div>
+
+            <small>
+              ACCOUNT MANAGEMENT
+            </small>
+
+            <h2>
+              Users
+            </h2>
+
+          </div>
+
+        </div>
+
+
+        <div class="table">
+
+          <table>
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  Username
+                </th>
+
+                <th>
+                  Role
+                </th>
+
+                <th>
+                  Joined
+                </th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody id="userTable">
+
+              <tr>
+
+                <td
+                  colspan="3"
+                  class="empty"
+                >
+                  Loading...
+                </td>
+
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </article>
+
+
+    </section>
+
+  </main>
+
+
+  <script src="admin-dashboard.js"></script>
+
+</body>
+
+</html>

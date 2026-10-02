@@ -1,155 +1,725 @@
 ﻿<!DOCTYPE html>
 <html lang="en" data-theme="dark">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NetArmor AI - Security Portal Authentication</title>
-  <link rel="icon" type="image/png" href="images/logo.png">
-  <link rel="stylesheet" href="home.css">
-  <link rel="stylesheet" href="login.css">
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>NetArmor AI - Security Portal Authentication</title>
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="images/logo.png"
+    >
+
+    <!-- Existing NetArmor Theme -->
+    <link
+        rel="stylesheet"
+        href="home.css"
+    >
+
+    <!-- Authentication Theme -->
+    <link
+        rel="stylesheet"
+        href="login.css"
+    >
+
 </head>
+
+
 <body>
 
-  
-  <div class="tunnel-container">
+
+<!-- =====================================================
+     CYBER BACKGROUND
+====================================================== -->
+
+<div class="tunnel-container">
+
     <div class="laser-scanner"></div>
-    <div class="cyber-grid" id="cyberGrid"></div>
+
+    <div
+        class="cyber-grid"
+        id="cyberGrid"
+    ></div>
+
     <div class="radial-center-glow"></div>
-  </div>
 
-  
-  <header class="navbar-wrapper">
+</div>
+
+
+
+<!-- =====================================================
+     NAVIGATION
+====================================================== -->
+
+<header class="navbar-wrapper">
+
     <div class="navbar">
-      <a href="index.html" class="nav-logo">
-        <div class="logo-shield-badge">
-          <img src="images/logo.png" alt="NetArmor AI Logo" class="brand-logo-img">
-        </div>
-        <span>NetArmor<span class="logo-accent">AI</span></span>
-      </a>
-      <a href="index.html" class="nav-btn-back">← Back to Terminal</a>
+
+        <a
+            href="index.html"
+            class="nav-logo"
+        >
+
+            <div class="logo-shield-badge">
+
+                <img
+                    src="images/logo.png"
+                    alt="NetArmor AI Logo"
+                    class="brand-logo-img"
+                >
+
+            </div>
+
+            <span>
+                NetArmor<span class="logo-accent">AI</span>
+            </span>
+
+        </a>
+
+
+        <a
+            href="index.html"
+            class="nav-btn-back"
+        >
+            ← Back to Terminal
+        </a>
+
     </div>
-  </header>
 
-  
-  <main class="auth-wrapper">
+</header>
 
-    
-    <div class="auth-card" id="loginCard">
-      <div class="auth-header">
+
+
+<!-- =====================================================
+     AUTHENTICATION AREA
+====================================================== -->
+
+<main class="auth-wrapper">
+
+
+<!-- =====================================================
+     LOGIN CARD
+====================================================== -->
+
+<div
+    class="auth-card"
+    id="loginCard"
+>
+
+
+    <!-- Header -->
+
+    <div class="auth-header">
+
         <div class="auth-status-badge">
-          <span class="badge-dot"></span> SECURE GATEWAY
-        </div>
-        <h2 class="auth-title">System Authentication</h2>
-        <p class="auth-subtitle">Verify credentials to access threat inspection services</p>
-      </div>
 
-      <form id="loginForm" class="auth-form" onsubmit="handleLogin(event)">
-        
-        <div class="form-group">
-          <label for="loginRole">AUTHORIZATION ROLE</label>
-          <div class="input-container">
-            <span class="input-icon">🛡️</span>
-            <select id="loginRole" class="auth-input" required>
-              <option value="user" selected>User (Standard Analyst)</option>
-              <option value="associate">Associate (Security Engineer)</option>
-            </select>
-          </div>
+            <span class="badge-dot"></span>
+
+            SECURE GATEWAY
+
         </div>
 
-        
-        <div class="form-group">
-          <label for="loginIdentifier">USERNAME OR EMAIL</label>
-          <div class="input-container">
-            <span class="input-icon">👤</span>
-            <input type="text" id="loginIdentifier" class="auth-input" placeholder="Enter username or email" required>
-          </div>
-        </div>
 
-        
-        <div class="form-group">
-          <label for="loginPassword">PASSWORD</label>
-          <div class="input-container">
-            <span class="input-icon">🔒</span>
-            <input type="password" id="loginPassword" class="auth-input" placeholder="••••••••••••" required>
-          </div>
-          
-          <div class="field-sub-action">
-            <a href="#forgot" class="sub-link" onclick="handleForgotPassword(event)">Forgot Password?</a>
-          </div>
-        </div>
+        <h2 class="auth-title">
+            System Authentication
+        </h2>
 
-        
-        <button type="submit" class="auth-btn-primary" id="loginBtn">
-          <span>Login</span>
-        </button>
-      </form>
 
-      
-      <div class="auth-footer">
-        <p>Don't have an account? <a href="#register" class="neon-link" onclick="toggleAuthMode('register')">Sign up</a></p>
-      </div>
+        <p class="auth-subtitle">
+            Verify credentials to access NetArmor AI
+            threat inspection services
+        </p>
+
     </div>
 
-    
-    <div class="auth-card hidden" id="registerCard">
-      <div class="auth-header">
+
+
+    <!-- Login Message -->
+
+    <div
+        id="loginMessage"
+        class="auth-message"
+        role="alert"
+    ></div>
+
+
+
+    <!-- Login Form -->
+
+    <form
+        id="loginForm"
+        class="auth-form"
+    >
+
+
+        <!-- Role -->
+
+        <div class="form-group">
+
+            <label for="loginRole">
+                AUTHORIZATION ROLE
+            </label>
+
+
+            <div class="input-container">
+
+                <span class="input-icon">
+                    🛡️
+                </span>
+
+
+                <select
+                    id="loginRole"
+                    class="auth-input"
+                    required
+                >
+
+                    <option
+                        value="user"
+                        selected
+                    >
+                        User (Standard Analyst)
+                    </option>
+
+
+                    <option value="associate">
+                        Associate (Security Engineer)
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Email -->
+
+        <div class="form-group">
+
+            <label for="loginEmail">
+                EMAIL ADDRESS
+            </label>
+
+
+            <div class="input-container">
+
+                <span class="input-icon">
+                    ✉️
+                </span>
+
+
+                <input
+                    type="email"
+                    id="loginEmail"
+                    class="auth-input"
+                    placeholder="name@domain.com"
+                    autocomplete="email"
+                    required
+                >
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Password -->
+
+        <div class="form-group">
+
+            <label for="loginPassword">
+                PASSWORD
+            </label>
+
+
+            <div class="input-container">
+
+                <span class="input-icon">
+                    🔒
+                </span>
+
+
+                <input
+                    type="password"
+                    id="loginPassword"
+                    class="auth-input"
+                    placeholder="Enter your password"
+                    autocomplete="current-password"
+                    required
+                >
+
+
+                <button
+                    type="button"
+                    class="password-toggle"
+                    id="loginPasswordToggle"
+                    aria-label="Show password"
+                >
+                    👁
+                </button>
+
+            </div>
+
+
+
+            <div class="field-sub-action">
+
+                <a
+                    href="#forgot"
+                    class="sub-link"
+                    id="forgotPasswordLink"
+                >
+                    Forgot Password?
+                </a>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Login Button -->
+
+        <button
+            type="submit"
+            class="auth-btn-primary"
+            id="loginBtn"
+        >
+
+            <span id="loginBtnText">
+                Login
+            </span>
+
+            <span
+                id="loginSpinner"
+                class="button-spinner hidden"
+            ></span>
+
+        </button>
+
+
+    </form>
+
+
+
+    <!-- Footer -->
+
+    <div class="auth-footer">
+
+        <p>
+
+            Don't have an account?
+
+            <a
+                href="#register"
+                class="neon-link"
+                id="showRegister"
+            >
+                Sign up
+            </a>
+
+        </p>
+
+    </div>
+
+
+</div>
+
+
+
+<!-- =====================================================
+     REGISTER CARD
+====================================================== -->
+
+<div
+    class="auth-card hidden"
+    id="registerCard"
+>
+
+
+    <!-- Header -->
+
+    <div class="auth-header">
+
         <div class="auth-status-badge">
-          <span class="badge-dot"></span> REGISTRATION PORTAL
-        </div>
-        <h2 class="auth-title">Create Account</h2>
-        <p class="auth-subtitle">Public signups are assigned the User role only</p>
-      </div>
 
-      <form id="registerForm" class="auth-form" onsubmit="handleRegistration(event)">
-        
-        <div class="form-group">
-          <label>ACCOUNT ROLE</label>
-          <div class="role-locked-pill">
-            <span class="pill-dot"></span> Standard User
-          </div>
-          <input type="hidden" id="registerRole" value="user">
+            <span class="badge-dot"></span>
+
+            REGISTRATION PORTAL
+
         </div>
 
-        
-        <div class="form-group">
-          <label for="regUsername">USERNAME</label>
-          <div class="input-container">
-            <span class="input-icon">👤</span>
-            <input type="text" id="regUsername" class="auth-input" placeholder="Choose a username" required>
-          </div>
-        </div>
 
-        
-        <div class="form-group">
-          <label for="regEmail">EMAIL ADDRESS</label>
-          <div class="input-container">
-            <span class="input-icon">✉️</span>
-            <input type="email" id="regEmail" class="auth-input" placeholder="name@domain.com" required>
-          </div>
-        </div>
+        <h2 class="auth-title">
+            Create Account
+        </h2>
 
-        
-        <div class="form-group">
-          <label for="regPassword">PASSWORD</label>
-          <div class="input-container">
-            <span class="input-icon">🔒</span>
-            <input type="password" id="regPassword" class="auth-input" placeholder="Create password" required>
-          </div>
-        </div>
 
-        
-        <button type="submit" class="auth-btn-primary" id="registerBtn">
-          <span>Create Account</span>
-        </button>
-      </form>
+        <p class="auth-subtitle">
+            Public registrations are assigned the
+            Standard User role
+        </p>
 
-      <div class="auth-footer">
-        <p>Already have an account? <a href="#login" class="neon-link" onclick="toggleAuthMode('login')">Login here</a></p>
-      </div>
     </div>
 
-  </main>
 
-  <script src="login.js"></script>
+
+    <!-- Register Message -->
+
+    <div
+        id="registerMessage"
+        class="auth-message"
+        role="alert"
+    ></div>
+
+
+
+    <!-- Registration Form -->
+
+    <form
+        id="registerForm"
+        class="auth-form"
+    >
+
+
+        <!-- Role -->
+
+        <div class="form-group">
+
+            <label>
+                ACCOUNT ROLE
+            </label>
+
+
+            <div class="role-locked-pill">
+
+                <span class="pill-dot"></span>
+
+                Standard User
+
+                <span class="role-lock">
+                    🔒
+                </span>
+
+            </div>
+
+
+            <input
+                type="hidden"
+                id="registerRole"
+                value="user"
+            >
+
+        </div>
+
+
+
+        <!-- Username -->
+
+        <div class="form-group">
+
+            <label for="regUsername">
+                USERNAME
+            </label>
+
+
+            <div class="input-container">
+
+                <span class="input-icon">
+                    👤
+                </span>
+
+
+                <input
+                    type="text"
+                    id="regUsername"
+                    class="auth-input"
+                    placeholder="Choose a username"
+                    minlength="3"
+                    maxlength="30"
+                    autocomplete="username"
+                    required
+                >
+
+            </div>
+
+
+            <small class="field-hint">
+                3–30 characters: letters, numbers and underscore
+            </small>
+
+        </div>
+
+
+
+        <!-- Email -->
+
+        <div class="form-group">
+
+            <label for="regEmail">
+                EMAIL ADDRESS
+            </label>
+
+
+            <div class="input-container">
+
+                <span class="input-icon">
+                    ✉️
+                </span>
+
+
+                <input
+                    type="email"
+                    id="regEmail"
+                    class="auth-input"
+                    placeholder="name@domain.com"
+                    autocomplete="email"
+                    required
+                >
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Password -->
+
+        <div class="form-group">
+
+            <label for="regPassword">
+                PASSWORD
+            </label>
+
+
+            <div class="input-container">
+
+                <span class="input-icon">
+                    🔒
+                </span>
+
+
+                <input
+                    type="password"
+                    id="regPassword"
+                    class="auth-input"
+                    placeholder="Create a strong password"
+                    minlength="8"
+                    autocomplete="new-password"
+                    required
+                >
+
+
+                <button
+                    type="button"
+                    class="password-toggle"
+                    id="registerPasswordToggle"
+                    aria-label="Show password"
+                >
+                    👁
+                </button>
+
+            </div>
+
+
+            <small class="field-hint">
+                Minimum 8 characters
+            </small>
+
+        </div>
+
+
+
+        <!-- Register Button -->
+
+        <button
+            type="submit"
+            class="auth-btn-primary"
+            id="registerBtn"
+        >
+
+            <span id="registerBtnText">
+                Create Account
+            </span>
+
+            <span
+                id="registerSpinner"
+                class="button-spinner hidden"
+            ></span>
+
+        </button>
+
+
+    </form>
+
+
+
+    <!-- Footer -->
+
+    <div class="auth-footer">
+
+        <p>
+
+            Already have an account?
+
+            <a
+                href="#login"
+                class="neon-link"
+                id="showLogin"
+            >
+                Login here
+            </a>
+
+        </p>
+
+    </div>
+
+
+</div>
+
+
+
+<!-- =====================================================
+     PASSWORD RESET CARD
+====================================================== -->
+
+<div
+    class="auth-card hidden"
+    id="resetCard"
+>
+
+
+    <div class="auth-header">
+
+        <div class="auth-status-badge">
+
+            <span class="badge-dot"></span>
+
+            ACCOUNT RECOVERY
+
+        </div>
+
+
+        <h2 class="auth-title">
+            Reset Password
+        </h2>
+
+
+        <p class="auth-subtitle">
+            Enter your registered email to receive
+            password recovery instructions.
+        </p>
+
+    </div>
+
+
+
+    <div
+        id="resetMessage"
+        class="auth-message"
+    ></div>
+
+
+
+    <form
+        id="resetForm"
+        class="auth-form"
+    >
+
+        <div class="form-group">
+
+            <label for="resetEmail">
+                EMAIL ADDRESS
+            </label>
+
+
+            <div class="input-container">
+
+                <span class="input-icon">
+                    ✉️
+                </span>
+
+
+                <input
+                    type="email"
+                    id="resetEmail"
+                    class="auth-input"
+                    placeholder="name@domain.com"
+                    required
+                >
+
+            </div>
+
+        </div>
+
+
+        <button
+            type="submit"
+            class="auth-btn-primary"
+            id="resetBtn"
+        >
+
+            <span id="resetBtnText">
+                Send Reset Link
+            </span>
+
+            <span
+                id="resetSpinner"
+                class="button-spinner hidden"
+            ></span>
+
+        </button>
+
+    </form>
+
+
+    <div class="auth-footer">
+
+        <p>
+
+            Remember your password?
+
+            <a
+                href="#login"
+                class="neon-link"
+                id="backToLogin"
+            >
+                Back to Login
+            </a>
+
+        </p>
+
+    </div>
+
+
+</div>
+
+
+</main>
+
+
+
+<!-- =====================================================
+     SUPABASE
+====================================================== -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="supabase-config.js"></script>
+
+<script src="login.js"></script>
+
+
 </body>
+
 </html>

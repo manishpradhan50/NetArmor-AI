@@ -1,211 +1,852 @@
-/* NetArmor AI - Login & Auth Theme */
+/* =========================================================
+   NetArmor AI
+   Authentication Interface
+   Cyber Emerald Theme
+========================================================= */
+
+
+/* =========================================================
+   AUTH WRAPPER
+========================================================= */
+
 .auth-wrapper {
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 100px 20px 40px;
-  position: relative;
-  z-index: 10;
+
+    min-height: calc(100vh - 70px);
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    padding: 100px 20px 50px;
+
+    position: relative;
+
+    z-index: 10;
+
 }
+
+
+/* =========================================================
+   AUTH CARD
+========================================================= */
 
 .auth-card {
-  width: 100%;
-  max-width: 440px;
-  background: rgba(10, 25, 20, 0.85);
-  border: 1px solid rgba(0, 255, 136, 0.28);
-  border-radius: 18px;
-  padding: 34px 30px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 255, 136, 0.12);
+
+    width: 100%;
+
+    max-width: 440px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(10, 30, 22, 0.94),
+            rgba(3, 16, 11, 0.92)
+        );
+
+    border: 1px solid
+        rgba(0, 255, 136, 0.28);
+
+    border-radius: 18px;
+
+    padding: 34px 30px;
+
+    backdrop-filter: blur(22px);
+
+    -webkit-backdrop-filter: blur(22px);
+
+    box-shadow:
+
+        0 25px 70px
+        rgba(0, 0, 0, 0.75),
+
+        0 0 35px
+        rgba(0, 255, 136, 0.10);
+
+    animation:
+        authCardIn
+        0.45s
+        ease
+        both;
+
 }
+
 
 .auth-card.hidden {
-  display: none;
+
+    display: none;
+
 }
+
+
+/* =========================================================
+   CARD ANIMATION
+========================================================= */
+
+@keyframes authCardIn {
+
+    from {
+
+        opacity: 0;
+
+        transform:
+            translateY(20px)
+            scale(0.98);
+
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform:
+            translateY(0)
+            scale(1);
+
+    }
+
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
 
 .auth-header {
-  text-align: center;
-  margin-bottom: 24px;
+
+    text-align: center;
+
+    margin-bottom: 22px;
+
 }
+
 
 .auth-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-  color: #00ff88;
-  background: rgba(0, 255, 136, 0.08);
-  border: 1px solid rgba(0, 255, 136, 0.25);
-  padding: 4px 12px;
-  border-radius: 20px;
-  margin-bottom: 12px;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    padding: 5px 12px;
+
+    border-radius: 20px;
+
+    color: #00ff88;
+
+    background:
+        rgba(0, 255, 136, 0.08);
+
+    border:
+        1px solid
+        rgba(0, 255, 136, 0.25);
+
+    font-size: 0.68rem;
+
+    font-weight: 800;
+
+    letter-spacing: 1.4px;
+
+    margin-bottom: 13px;
+
 }
 
-.auth-status-badge .badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #00ff88;
-  box-shadow: 0 0 8px #00ff88;
+
+.badge-dot {
+
+    width: 6px;
+
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: #00ff88;
+
+    box-shadow:
+        0 0 8px #00ff88;
+
 }
+
 
 .auth-title {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: #ffffff;
-  margin-bottom: 6px;
+
+    margin: 0 0 7px;
+
+    color: #ffffff;
+
+    font-size: 1.55rem;
+
+    font-weight: 800;
+
+    letter-spacing: -0.3px;
+
 }
+
 
 .auth-subtitle {
-  font-size: 0.82rem;
-  color: #86efac;
-  line-height: 1.45;
+
+    margin: 0;
+
+    color: #86efac;
+
+    font-size: 0.81rem;
+
+    line-height: 1.55;
+
 }
+
+
+/* =========================================================
+   MESSAGE BOX
+========================================================= */
+
+.auth-message {
+
+    display: none;
+
+    margin-bottom: 17px;
+
+    padding: 11px 13px;
+
+    border-radius: 9px;
+
+    font-size: 0.78rem;
+
+    line-height: 1.45;
+
+}
+
+
+.auth-message.show {
+
+    display: block;
+
+}
+
+
+.auth-message.success {
+
+    color: #bbf7d0;
+
+    background:
+        rgba(16, 185, 129, 0.12);
+
+    border:
+        1px solid
+        rgba(16, 185, 129, 0.30);
+
+}
+
+
+.auth-message.error {
+
+    color: #fecaca;
+
+    background:
+        rgba(239, 68, 68, 0.10);
+
+    border:
+        1px solid
+        rgba(239, 68, 68, 0.28);
+
+}
+
+
+.auth-message.info {
+
+    color: #bfdbfe;
+
+    background:
+        rgba(59, 130, 246, 0.10);
+
+    border:
+        1px solid
+        rgba(59, 130, 246, 0.28);
+
+}
+
+
+/* =========================================================
+   FORM
+========================================================= */
 
 .auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 16px;
+
 }
+
 
 .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  text-align: left;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 6px;
+
 }
+
 
 .form-group label {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 1px;
-  color: #00ff88;
+
+    color: #00ff88;
+
+    font-size: 0.70rem;
+
+    font-weight: 800;
+
+    letter-spacing: 1px;
+
 }
+
+
+/* =========================================================
+   INPUT
+========================================================= */
 
 .input-container {
-  display: flex;
-  align-items: center;
-  background: rgba(2, 13, 8, 0.9);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: 10px;
-  padding: 2px 12px;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+
+    display: flex;
+
+    align-items: center;
+
+    min-height: 44px;
+
+    padding:
+        2px 11px;
+
+    border-radius: 10px;
+
+    background:
+        rgba(2, 13, 8, 0.90);
+
+    border:
+        1px solid
+        rgba(16, 185, 129, 0.28);
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+
 }
+
 
 .input-container:focus-within {
-  border-color: #00ff88;
-  box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
+
+    border-color: #00ff88;
+
+    background:
+        rgba(3, 18, 11, 0.96);
+
+    box-shadow:
+        0 0 0 2px
+        rgba(0, 255, 136, 0.06),
+
+        0 0 15px
+        rgba(0, 255, 136, 0.18);
+
 }
+
 
 .input-icon {
-  font-size: 0.95rem;
-  margin-right: 8px;
-  opacity: 0.85;
+
+    width: 25px;
+
+    flex-shrink: 0;
+
+    font-size: 0.9rem;
+
+    opacity: 0.85;
+
 }
+
 
 .auth-input {
-  width: 100%;
-  background: transparent;
-  border: none;
-  color: #ffffff;
-  font-size: 0.9rem;
-  padding: 10px 0;
-  outline: none;
-  font-family: inherit;
+
+    width: 100%;
+
+    min-width: 0;
+
+    border: none;
+
+    outline: none;
+
+    background: transparent;
+
+    color: #ffffff;
+
+    font-family: inherit;
+
+    font-size: 0.88rem;
+
+    padding: 10px 0;
+
 }
+
+
+.auth-input::placeholder {
+
+    color: rgba(134, 239, 172, 0.42);
+
+}
+
 
 .auth-input option {
-  background-color: #061811;
-  color: #ffffff;
+
+    background: #061811;
+
+    color: #ffffff;
+
 }
 
-.role-locked-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(0, 255, 136, 0.06);
-  border: 1px dashed rgba(0, 255, 136, 0.35);
-  border-radius: 8px;
-  padding: 10px 14px;
-  color: #a7f3d0;
-  font-size: 0.85rem;
-  font-weight: 600;
+
+/* =========================================================
+   PASSWORD TOGGLE
+========================================================= */
+
+.password-toggle {
+
+    flex-shrink: 0;
+
+    width: 32px;
+
+    height: 32px;
+
+    border: none;
+
+    background: transparent;
+
+    color: #86efac;
+
+    cursor: pointer;
+
+    border-radius: 7px;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+
 }
 
-.pill-dot {
-  width: 7px;
-  height: 7px;
-  background: #10b981;
-  border-radius: 50%;
-  box-shadow: 0 0 6px #10b981;
+
+.password-toggle:hover {
+
+    background:
+        rgba(0, 255, 136, 0.08);
+
+    color: #00ff88;
+
 }
+
+
+/* =========================================================
+   FIELD HINT
+========================================================= */
+
+.field-hint {
+
+    color:
+        rgba(134, 239, 172, 0.58);
+
+    font-size: 0.68rem;
+
+    margin-top: 1px;
+
+}
+
+
+/* =========================================================
+   FORGOT PASSWORD
+========================================================= */
 
 .field-sub-action {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 4px;
+
+    display: flex;
+
+    justify-content: flex-end;
+
+    margin-top: 3px;
+
 }
+
 
 .sub-link {
-  font-size: 0.78rem;
-  color: #86efac;
-  text-decoration: none;
-  transition: color 0.2s ease;
+
+    color: #86efac;
+
+    text-decoration: none;
+
+    font-size: 0.76rem;
+
+    transition:
+        color 0.2s ease;
+
 }
+
 
 .sub-link:hover {
-  color: #00ff88;
-  text-decoration: underline;
+
+    color: #00ff88;
+
+    text-decoration: underline;
+
 }
+
+
+/* =========================================================
+   LOCKED ROLE
+========================================================= */
+
+.role-locked-pill {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    min-height: 42px;
+
+    padding: 0 13px;
+
+    border-radius: 9px;
+
+    color: #a7f3d0;
+
+    background:
+        rgba(0, 255, 136, 0.055);
+
+    border:
+        1px dashed
+        rgba(0, 255, 136, 0.30);
+
+    font-size: 0.83rem;
+
+    font-weight: 650;
+
+}
+
+
+.pill-dot {
+
+    width: 7px;
+
+    height: 7px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: #10b981;
+
+    box-shadow:
+        0 0 7px #10b981;
+
+}
+
+
+.role-lock {
+
+    margin-left: auto;
+
+    opacity: 0.6;
+
+}
+
+
+/* =========================================================
+   PRIMARY BUTTON
+========================================================= */
 
 .auth-btn-primary {
-  margin-top: 6px;
-  padding: 12px 20px;
-  background: linear-gradient(135deg, #059669, #00ff88);
-  border: none;
-  border-radius: 10px;
-  color: #020d08;
-  font-weight: 800;
-  font-size: 0.92rem;
-  cursor: pointer;
-  box-shadow: 0 0 20px rgba(0, 255, 136, 0.35);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: 9px;
+
+    width: 100%;
+
+    min-height: 45px;
+
+    margin-top: 3px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #059669,
+            #00ff88
+        );
+
+    color: #020d08;
+
+    font-size: 0.90rem;
+
+    font-weight: 850;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 0 20px
+        rgba(0, 255, 136, 0.28);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        opacity 0.2s ease;
+
 }
+
 
 .auth-btn-primary:hover {
-  box-shadow: 0 0 30px rgba(0, 255, 136, 0.6);
-  transform: translateY(-1px);
+
+    transform:
+        translateY(-1px);
+
+    box-shadow:
+        0 0 30px
+        rgba(0, 255, 136, 0.48);
+
 }
+
+
+.auth-btn-primary:active {
+
+    transform:
+        translateY(0);
+
+}
+
+
+.auth-btn-primary:disabled {
+
+    cursor: not-allowed;
+
+    opacity: 0.65;
+
+    transform: none;
+
+}
+
+
+/* =========================================================
+   SPINNER
+========================================================= */
+
+.button-spinner {
+
+    width: 15px;
+
+    height: 15px;
+
+    border-radius: 50%;
+
+    border:
+        2px solid
+        rgba(2, 13, 8, 0.30);
+
+    border-top-color:
+        #020d08;
+
+    animation:
+        buttonSpin
+        0.7s
+        linear
+        infinite;
+
+}
+
+
+@keyframes buttonSpin {
+
+    to {
+
+        transform:
+            rotate(360deg);
+
+    }
+
+}
+
+
+.hidden {
+
+    display: none !important;
+
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
 
 .auth-footer {
-  margin-top: 22px;
-  text-align: center;
-  font-size: 0.82rem;
-  color: #86efac;
+
+    margin-top: 21px;
+
+    text-align: center;
+
+    color: #86efac;
+
+    font-size: 0.79rem;
+
 }
+
+
+.auth-footer p {
+
+    margin: 0;
+
+}
+
 
 .neon-link {
-  color: #00ff88;
-  text-decoration: none;
-  font-weight: 700;
+
+    color: #00ff88;
+
+    font-weight: 750;
+
+    text-decoration: none;
+
 }
+
 
 .neon-link:hover {
-  text-decoration: underline;
+
+    text-decoration: underline;
+
 }
+
+
+/* =========================================================
+   NAV BACK BUTTON
+========================================================= */
 
 .nav-btn-back {
-  font-size: 0.82rem;
-  color: #86efac;
-  text-decoration: none;
-  font-weight: 600;
-  transition: color 0.2s ease;
+
+    color: #86efac;
+
+    text-decoration: none;
+
+    font-size: 0.82rem;
+
+    font-weight: 600;
+
+    transition:
+        color 0.2s ease;
+
 }
 
+
 .nav-btn-back:hover {
-  color: #00ff88;
+
+    color: #00ff88;
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+
+    .auth-wrapper {
+
+        min-height: 100vh;
+
+        padding:
+            90px
+            14px
+            30px;
+
+        align-items: flex-start;
+
+    }
+
+
+    .auth-card {
+
+        max-width: 100%;
+
+        padding:
+            27px
+            20px;
+
+        border-radius: 15px;
+
+    }
+
+
+    .auth-title {
+
+        font-size: 1.35rem;
+
+    }
+
+
+    .auth-subtitle {
+
+        font-size: 0.76rem;
+
+    }
+
+
+    .navbar {
+
+        padding:
+            12px 14px;
+
+    }
+
+
+    .nav-btn-back {
+
+        font-size: 0.72rem;
+
+    }
+
+}
+
+
+@media (max-width: 380px) {
+
+    .auth-wrapper {
+
+        padding-left: 10px;
+
+        padding-right: 10px;
+
+    }
+
+
+    .auth-card {
+
+        padding:
+            23px 16px;
+
+    }
+
+
+    .auth-title {
+
+        font-size: 1.25rem;
+
+    }
+
 }

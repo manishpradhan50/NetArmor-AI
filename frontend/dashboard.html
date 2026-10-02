@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>NetArmor AI — User Dashboard</title>
+
+  <link rel="stylesheet" href="dashboard.css">
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+</head>
+
+<body>
+
+  <div class="grid"></div>
+
+  <!-- NAVBAR -->
+  <header>
+
+    <a class="brand" href="index.html">
+      ◆
+      <span>NetArmor <b>AI</b></span>
+    </a>
+
+    <nav>
+      <a href="detect.html" class="scan">
+        Launch Scanner
+      </a>
+
+      <button id="logout">
+        Logout
+      </button>
+    </nav>
+
+  </header>
+
+
+  <main>
+
+    <!-- WELCOME -->
+    <section class="welcome">
+
+      <div>
+        <small>USER SECURITY CONSOLE</small>
+
+        <h1>
+          Welcome back,
+          <span id="name">User</span>
+        </h1>
+
+        <p>
+          Review your security activity and launch a new threat analysis.
+        </p>
+      </div>
+
+      <a class="primary" href="detect.html">
+        ＋ New Scan
+      </a>
+
+    </section>
+
+
+    <!-- STATISTICS -->
+    <section class="stats">
+
+      <div>
+        <label>Total Scans</label>
+        <strong id="total">0</strong>
+        <em>All analyses</em>
+      </div>
+
+      <div>
+        <label>Threats Detected</label>
+        <strong id="threats">0</strong>
+        <em>Flagged results</em>
+      </div>
+
+      <div>
+        <label>Safe Results</label>
+        <strong id="safe">0</strong>
+        <em>Passed analysis</em>
+      </div>
+
+      <div>
+        <label>Threat Rate</label>
+        <strong id="rate">0%</strong>
+        <em>Based on history</em>
+      </div>
+
+    </section>
+
+
+    <!-- CONTENT -->
+    <section class="cols">
+
+      <!-- SCAN HISTORY -->
+      <article class="panel">
+
+        <div class="head">
+
+          <div>
+            <small>RECENT ACTIVITY</small>
+            <h2>Your Scan History</h2>
+          </div>
+
+          <button id="refresh">
+            Refresh
+          </button>
+
+        </div>
+
+
+        <div class="table">
+
+          <table>
+
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Target</th>
+                <th>Result</th>
+                <th>Risk</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+
+            <tbody id="history">
+
+              <tr>
+                <td colspan="5" class="empty">
+                  No scans recorded yet.
+                </td>
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </article>
+
+
+      <!-- QUICK ACTIONS -->
+      <aside class="panel">
+
+        <small>QUICK ACTIONS</small>
+
+        <h2>Security Tools</h2>
+
+
+        <a href="detect.html?tab=url">
+
+          🌐
+
+          <span>
+            <b>URL Scanner</b>
+            <small>Inspect suspicious links</small>
+          </span>
+
+          →
+
+        </a>
+
+
+        <a href="detect.html?tab=email">
+
+          ✉️
+
+          <span>
+            <b>Email Analyzer</b>
+            <small>Analyze phishing language</small>
+          </span>
+
+          →
+
+        </a>
+
+
+        <a href="detect.html?tab=message">
+
+          💬
+
+          <span>
+            <b>Smishing Scanner</b>
+            <small>Check SMS messages</small>
+          </span>
+
+          →
+
+        </a>
+
+
+        <a href="detect.html?tab=document">
+
+          📄
+
+          <span>
+            <b>PDF Scanner</b>
+            <small>Inspect documents</small>
+          </span>
+
+          →
+
+        </a>
+
+      </aside>
+
+    </section>
+
+  </main>
+
+
+  <script src="dashboard.js"></script>
+
+</body>
+</html>
