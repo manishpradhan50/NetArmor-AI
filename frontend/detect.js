@@ -2,7 +2,44 @@
    NetArmor AI - Scanner Hub Engine (detect.js)
    ========================================================= */
 
-const API_BASE = "https://netarmor-ai.onrender.com";
+const API_BASE = window.NETARMOR_CONFIG?.API_BASE_URL || "https://netarmor-ai.onrender.com";
+const sb = window.netarmorSupabase;
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+  })[c]);
+}
+
+function sanitizeHistoryTarget(scanType, target) {
+  if (scanType === "url") {
+    try {
+      const parsed = new URL(target);
+      return `${parsed.origin}${parsed.pathname}`.slice(0, 500);
+    } catch (_) {
+      return String(target).split(/[?#]/)[0].slice(0, 500);
+    }
+  }
+  return String(target).slice(0, 200);
+}
+
+async function recordScan(scanType, target, riskScore) {
+  if (!sb) return;
+  try {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return;
+    const { error } = await sb.from("scan_history").insert({
+      user_id: user.id,
+      scan_type: scanType,
+      target: sanitizeHistoryTarget(scanType, target),
+      result: Number(riskScore) >= 50 ? "Threat" : "Safe",
+      risk_score: Math.max(0, Math.min(100, Number(riskScore) || 0))
+    });
+    if (error) console.warn("Scan history was not saved:", error.message);
+  } catch (error) {
+    console.warn("Scan history error:", error);
+  }
+}
 let selectedPdfFile = null;
 
 // Helper to delay execution for visual scanner feedback
@@ -290,8 +327,10 @@ async function analyzeURL() {
     }
 
     flags.innerHTML = (data.flags && data.flags.length > 0)
-      ? data.flags.map(f => `<li>${f}</li>`).join("")
+      ? data.flags.map(f => `<li>${escapeHtml(f)}</li>`).join("")
       : "<li>No malicious anomalies detected in URL structure.</li>";
+
+    await recordScan("url", url, data.risk_percentage);
 
   } catch (err) {
     alert("Backend server offline. Ensure FastAPI is running on port 8000.");
@@ -339,8 +378,10 @@ async function analyzeEmail() {
     } else {
       score.style.color = "var(--safe)";
       badge.className = "badge badge-safe";
-      verdictText.innerText = "Clean content. No manipulative triggers or phishing signatures detected.";
+      verdictText.innerText = "No high-risk patterns were identified by the configured model.";
     }
+
+    await recordScan("email", "Email analysis", data.risk_percentage);
 
   } catch (err) {
     alert("Backend server offline. Ensure FastAPI is running on port 8000.");
@@ -392,8 +433,10 @@ async function analyzeMessage() {
     }
 
     flags.innerHTML = (data.flags && data.flags.length > 0)
-      ? data.flags.map(f => `<li>${f}</li>`).join("")
+      ? data.flags.map(f => `<li>${escapeHtml(f)}</li>`).join("")
       : "<li>No high-risk smishing or social engineering triggers identified.</li>";
+
+    await recordScan("message", "Message analysis", data.risk_percentage);
 
   } catch (err) {
     alert("Backend server offline. Ensure FastAPI is running on port 8000.");
@@ -492,14 +535,16 @@ async function analyzeDocument() {
     if (urlsElem) {
       if (data.extracted_urls && data.extracted_urls.length > 0) {
         urlsElem.innerHTML = `<strong>Embedded Hyperlinks Found (${data.extracted_urls.length}):</strong><br>` +
-          data.extracted_urls.slice(0, 3).map(u => `• ${u}`).join("<br>");
+          data.extracted_urls.slice(0, 3).map(u => `• ${escapeHtml(u)}`).join("<br>");
       } else {
         urlsElem.innerHTML = "";
       }
     }
 
+    await recordScan("document", "PDF document", data.risk_percentage);
+
   } catch (err) {
-    alert("Backend server offline. Ensure FastAPI is running on port 8000.");
+    alert(err.message || "Unable to scan the PDF. Please try again.");
   } finally {
     scanBtn.innerText = "Scan Uploaded PDF";
     scanBtn.disabled = false;
@@ -618,3 +663,5 @@ if (chatInput) {
     }
   });
 }
+
+

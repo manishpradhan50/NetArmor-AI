@@ -940,7 +940,7 @@ if (forgotPasswordBtn) {
                             {
 
                                 redirectTo:
-                                    `${window.location.origin}/frontend/update-password.html`
+                                    `${window.location.origin}/update-password.html`
 
                             }
                         );
@@ -1081,3 +1081,5 @@ console.log(
     "Supabase client:",
     supabaseClient ? "Connected" : "Missing"
 );
+
+
