@@ -1,6 +1,6 @@
--- NetArmor AI - Supabase schema
--- Run this in Supabase SQL Editor.
--- Public registration is always role='user'. Promote trusted staff manually to 'associate'.
+-- NetArmor AI - Supabase Schema & Security Setup
+-- Execute this entire script in your Supabase SQL Editor.
+-- Public registration creates role='user'. Promote associates manually to 'associate'.
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -22,12 +22,25 @@ create table if not exists public.scan_history (
   created_at timestamptz not null default now()
 );
 
+-- Establish explicit foreign key link between scan_history and profiles for PostgREST joins
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'fk_scan_history_profiles'
+  ) then
+    alter table public.scan_history
+      add constraint fk_scan_history_profiles
+      foreign key (user_id) references public.profiles(id) on delete cascade;
+  end if;
+end $$;
+
 create index if not exists idx_scan_history_user_created
   on public.scan_history(user_id, created_at desc);
 
 create index if not exists idx_scan_history_created
   on public.scan_history(created_at desc);
 
+-- Automatic Profile Creation Trigger on Auth User Creation
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -54,6 +67,7 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row execute procedure public.handle_new_user();
 
+-- Security Check Helper: Check if current authenticated user has associate privileges
 create or replace function public.is_associate()
 returns boolean
 language sql
@@ -68,23 +82,25 @@ as $$
 $$;
 
 grant execute on function public.is_associate() to authenticated;
-
 grant select, insert, update on public.profiles to authenticated;
 grant select, insert on public.scan_history to authenticated;
 
 alter table public.profiles enable row level security;
 alter table public.scan_history enable row level security;
 
--- Drop old policies if this script is re-run.
+-- Policies for public.profiles
 drop policy if exists "profiles_select_own_or_associate" on public.profiles;
 drop policy if exists "profiles_update_own" on public.profiles;
 drop policy if exists "profiles_associate_update" on public.profiles;
-drop policy if exists "scan_select_own_or_associate" on public.scan_history;
-drop policy if exists "scan_insert_own" on public.scan_history;
+drop policy if exists "profiles_insert_own" on public.profiles;
 
 create policy "profiles_select_own_or_associate"
 on public.profiles for select to authenticated
 using (id = auth.uid() or public.is_associate());
+
+create policy "profiles_insert_own"
+on public.profiles for insert to authenticated
+with check (id = auth.uid());
 
 create policy "profiles_update_own"
 on public.profiles for update to authenticated
@@ -96,6 +112,10 @@ on public.profiles for update to authenticated
 using (public.is_associate())
 with check (public.is_associate());
 
+-- Policies for public.scan_history
+drop policy if exists "scan_select_own_or_associate" on public.scan_history;
+drop policy if exists "scan_insert_own" on public.scan_history;
+
 create policy "scan_select_own_or_associate"
 on public.scan_history for select to authenticated
 using (user_id = auth.uid() or public.is_associate());
@@ -103,5 +123,3 @@ using (user_id = auth.uid() or public.is_associate());
 create policy "scan_insert_own"
 on public.scan_history for insert to authenticated
 with check (user_id = auth.uid());
-
--- IMPORTANT: Never expose SUPABASE_SERVICE_ROLE_KEY to frontend code.

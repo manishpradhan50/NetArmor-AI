@@ -1,338 +1,150 @@
 <!doctype html>
 <html lang="en">
-
 <head>
-
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
-  >
-
-  <title>
-    NetArmor AI — Admin Dashboard
-  </title>
-
-  <link
-    rel="stylesheet"
-    href="dashboard.css"
-  >
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NetArmor AI — Security Operations Admin Console</title>
+  <link rel="icon" type="image/png" href="images/logo.png">
+  <link rel="stylesheet" href="dashboard.css">
 
   <!-- Supabase -->
-  <script
-    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
-  ></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
-
 </head>
 
-
 <body>
-
   <div class="grid"></div>
 
-
   <!-- HEADER -->
-
   <header>
-
-    <a
-      class="brand"
-      href="index.html"
-    >
-      ◆
-      <span>
-        NetArmor <b>AI</b>
-      </span>
+    <a class="brand" href="index.html">
+      <img src="images/logo.png" alt="NetArmor Logo" style="width: 24px; height: 24px; object-fit: contain;">
+      <span>NetArmor <b>AI</b></span>
     </a>
 
-
     <nav>
-
-      <span class="admin">
-        ADMIN CONSOLE
+      <span class="admin" style="background: rgba(239, 68, 68, 0.15); color: #ff6b81; border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.8px;">
+        🛡️ ASSOCIATE SOC
       </span>
-
-
-      <a
-        href="detect.html"
-        class="scan"
-      >
-        Scanner
+      <a href="detect.html" class="scan">
+        Threat Scanner
       </a>
-
-
       <button id="logout">
         Logout
       </button>
-
     </nav>
-
   </header>
 
-
   <main>
-
-
     <!-- WELCOME -->
-
     <section class="welcome">
-
       <div>
-
-        <small>
-          SECURITY OPERATIONS CENTER
-        </small>
-
+        <small>SECURITY OPERATIONS CENTER</small>
         <h1>
-          Admin Dashboard
+          Admin Telemetry Dashboard
         </h1>
-
         <p>
-          Monitor users, scans and platform-wide
-          threat activity.
+          Monitor authenticated users, global telemetry scans, and real-time threat rates.
         </p>
-
       </div>
 
-
-      <button
-        class="primary"
-        id="refresh"
-      >
+      <button class="primary" id="refresh">
         ↻ Refresh Data
       </button>
-
     </section>
-
 
     <!-- STATISTICS -->
-
     <section class="stats">
-
-
       <div>
-
-        <label>
-          Registered Users
-        </label>
-
-        <strong id="users">
-          0
-        </strong>
-
-        <em>
-          Platform profiles
-        </em>
-
+        <label>Registered Accounts</label>
+        <strong id="users">0</strong>
+        <em>Platform profiles</em>
       </div>
 
-
       <div>
-
-        <label>
-          Total Scans
-        </label>
-
-        <strong id="total">
-          0
-        </strong>
-
-        <em>
-          All analyses
-        </em>
-
+        <label>Total Analyses Run</label>
+        <strong id="total">0</strong>
+        <em>Platform-wide scans</em>
       </div>
-
 
       <div class="danger">
-
-        <label>
-          Threats Detected
-        </label>
-
-        <strong id="threats">
-          0
-        </strong>
-
-        <em>
-          Flagged results
-        </em>
-
+        <label>Threats Neutralized</label>
+        <strong id="threats" style="color: var(--red);">0</strong>
+        <em>Flagged attacks</em>
       </div>
-
 
       <div>
-
-        <label>
-          Threat Rate
-        </label>
-
-        <strong id="rate">
-          0%
-        </strong>
-
-        <em>
-          All scans
-        </em>
-
+        <label>Global Threat Rate</label>
+        <strong id="rate">0%</strong>
+        <em>Ratio across all vectors</em>
       </div>
-
-
     </section>
-
 
     <!-- ADMIN CONTENT -->
-
     <section class="cols admincols">
-
-
       <!-- THREAT ACTIVITY -->
-
       <article class="panel">
-
-
         <div class="head">
-
           <div>
-
-            <small>
-              THREAT INTELLIGENCE
-            </small>
-
-            <h2>
-              Recent Activity
-            </h2>
-
+            <small>GLOBAL TELEMETRY</small>
+            <h2>Recent Threat Activity</h2>
           </div>
-
         </div>
-
 
         <div class="table">
-
           <table>
-
             <thead>
-
               <tr>
-
-                <th>User</th>
-
-                <th>Type</th>
-
-                <th>Target</th>
-
-                <th>Result</th>
-
-                <th>Risk</th>
-
-                <th>Time</th>
-
+                <th>Operator</th>
+                <th>Vector</th>
+                <th>Inspected Payload</th>
+                <th>Verdict</th>
+                <th>Risk Score</th>
+                <th>Timestamp</th>
               </tr>
-
             </thead>
-
-
             <tbody id="threatsTable">
-
               <tr>
-
-                <td
-                  colspan="6"
-                  class="empty"
-                >
-                  No records yet.
+                <td colspan="6" class="empty">
+                  Loading activity telemetry...
                 </td>
-
               </tr>
-
             </tbody>
-
           </table>
-
         </div>
-
       </article>
-
 
       <!-- USERS -->
-
       <article class="panel">
-
         <div class="head">
-
           <div>
-
-            <small>
-              ACCOUNT MANAGEMENT
-            </small>
-
-            <h2>
-              Users
-            </h2>
-
+            <small>IDENTITY MANAGEMENT</small>
+            <h2>Registered Users</h2>
           </div>
-
         </div>
-
 
         <div class="table">
-
           <table>
-
             <thead>
-
               <tr>
-
-                <th>
-                  Username
-                </th>
-
-                <th>
-                  Role
-                </th>
-
-                <th>
-                  Joined
-                </th>
-
+                <th>User / Identity</th>
+                <th>Access Role</th>
+                <th>Enrolled Date</th>
               </tr>
-
             </thead>
-
-
             <tbody id="userTable">
-
               <tr>
-
-                <td
-                  colspan="3"
-                  class="empty"
-                >
-                  Loading...
+                <td colspan="3" class="empty">
+                  Loading user directory...
                 </td>
-
               </tr>
-
             </tbody>
-
           </table>
-
         </div>
-
       </article>
-
-
     </section>
-
   </main>
 
-
   <script src="admin-dashboard.js"></script>
-
 </body>
-
 </html>

@@ -273,9 +273,7 @@ if (previewCard && window.innerWidth >= 768) {
   });
 }
 
-// --- 7. Real-Time FastAPI Backend Health Check ---
-const BACKEND_API = "https://netarmor-ai.onrender.com";
-
+// --- 7. Real-Time Backend Health Check & Auth Session Sync ---
 async function checkBackendHealth() {
   const pill = document.getElementById("backendStatusPill");
   const text = document.getElementById("backendStatusText");
@@ -284,25 +282,73 @@ async function checkBackendHealth() {
   if (!pill || !text || !dot) return;
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    const apiBase = typeof window.resolveNetArmorApi === "function"
+      ? await window.resolveNetArmorApi()
+      : "https://netarmor-ai.onrender.com";
 
-    await fetch(`${BACKEND_API}/docs`, {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+    const res = await fetch(`${apiBase}/api/health`, {
       method: "GET",
-      mode: "no-cors",
       signal: controller.signal
     });
 
     clearTimeout(timeoutId);
-    pill.className = "system-status-pill status-online";
-    text.innerText = "Online";
+    if (res.ok) {
+      pill.className = "system-status-pill status-online";
+      text.innerText = apiBase.includes("127.0.0.1") || apiBase.includes("localhost") ? "Online (Local)" : "Online (Cloud)";
+    } else {
+      throw new Error();
+    }
   } catch (error) {
     pill.className = "system-status-pill status-offline";
     text.innerText = "Offline";
   }
 }
 
+// Update login buttons if user is already authenticated
+async function checkUserSession() {
+  const sb = window.netarmorSupabase;
+  if (!sb) return;
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session && session.user) {
+      const desktopBtn = document.getElementById("desktopLoginBtn");
+      const mobileBtn = document.getElementById("mobileLoginBtn");
+
+      let targetHref = "dashboard.html";
+      let btnLabel = "Dashboard";
+
+      // Check if user is associate
+      const { data: profile } = await sb
+        .from("profiles")
+        .select("role")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      if (profile?.role === "associate") {
+        targetHref = "admin-dashboard.html";
+        btnLabel = "Admin Console";
+      }
+
+      [desktopBtn, mobileBtn].forEach((btn) => {
+        if (btn) {
+          btn.href = targetHref;
+          btn.textContent = btnLabel;
+          btn.style.borderColor = "var(--neon-green)";
+          btn.style.color = "var(--neon-green)";
+        }
+      });
+    }
+  } catch (err) {
+    console.warn("Home session check bypassed:", err);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   checkBackendHealth();
-  setInterval(checkBackendHealth, 5000);
-});
+  checkUserSession();
+  setInterval(checkBackendHealth, 6000);
+});

@@ -1,1085 +1,482 @@
 /* =========================================================
-   NETARMOR AI
-   SUPABASE AUTHENTICATION
-   login.js
+   NetArmor AI - Authentication System (login.js)
+   Fully Integrated with Supabase Auth & Role-Based Access
    ========================================================= */
 
+const sb = window.netarmorSupabase;
 
-/* =========================================================
-   SUPABASE CLIENT
-   ========================================================= */
-
-const supabaseClient = window.netarmorSupabase;
-
-
-/* =========================================================
-   CHECK SUPABASE CONFIGURATION
-   ========================================================= */
-
-if (!supabaseClient) {
-    console.error(
-        "NetArmor AI: Supabase client was not initialized."
-    );
-
-    alert(
-        "Supabase configuration is missing. Please check supabase-config.js."
-    );
-}
-
-
-/* =========================================================
-   DOM ELEMENTS
-   ========================================================= */
+// DOM Elements
+const loginCard = document.getElementById("loginCard");
+const registerCard = document.getElementById("registerCard");
+const resetCard = document.getElementById("resetCard");
 
 const loginForm = document.getElementById("loginForm");
 const registerForm = document.getElementById("registerForm");
-
-const loginCard = document.getElementById("loginCard");
-const registerCard = document.getElementById("registerCard");
+const resetForm = document.getElementById("resetForm");
 
 const loginBtn = document.getElementById("loginBtn");
 const registerBtn = document.getElementById("registerBtn");
+const resetBtn = document.getElementById("resetBtn");
+
+const loginBtnText = document.getElementById("loginBtnText");
+const registerBtnText = document.getElementById("registerBtnText");
+const resetBtnText = document.getElementById("resetBtnText");
+
+const loginSpinner = document.getElementById("loginSpinner");
+const registerSpinner = document.getElementById("registerSpinner");
+const resetSpinner = document.getElementById("resetSpinner");
 
 const loginMessage = document.getElementById("loginMessage");
 const registerMessage = document.getElementById("registerMessage");
+const resetMessage = document.getElementById("resetMessage");
 
 const showRegisterBtn = document.getElementById("showRegister");
 const showLoginBtn = document.getElementById("showLogin");
-
-/*
-   IMPORTANT:
-   Your HTML uses "forgotPasswordLink",
-   not "forgotPassword".
-*/
-const forgotPasswordBtn =
-    document.getElementById("forgotPasswordLink");
-
+const forgotPasswordLink = document.getElementById("forgotPasswordLink");
+const backToLoginBtn = document.getElementById("backToLogin");
 
 /* =========================================================
-   FORM SWITCHING
-   ========================================================= */
-
-function showLogin() {
-
-    if (!loginCard || !registerCard) {
-        return;
-    }
-
-    registerCard.classList.add("hidden");
-    loginCard.classList.remove("hidden");
-
-    clearMessages();
-}
-
-
-function showRegister() {
-
-    if (!loginCard || !registerCard) {
-        return;
-    }
-
-    loginCard.classList.add("hidden");
-    registerCard.classList.remove("hidden");
-
-    clearMessages();
-}
-
-
-/* =========================================================
-   FORM SWITCH BUTTONS
-   ========================================================= */
-
-if (showRegisterBtn) {
-
-    showRegisterBtn.addEventListener(
-        "click",
-        function (event) {
-
-            event.preventDefault();
-
-            window.location.hash = "register";
-
-            showRegister();
-        }
-    );
-}
-
-
-if (showLoginBtn) {
-
-    showLoginBtn.addEventListener(
-        "click",
-        function (event) {
-
-            event.preventDefault();
-
-            window.location.hash = "login";
-
-            showLogin();
-        }
-    );
-}
-
-
-/* =========================================================
-   MESSAGE FUNCTIONS
+   CARD SWITCHING & URL HASH ROUTING
    ========================================================= */
 
 function clearMessages() {
-
-    if (loginMessage) {
-
-        loginMessage.style.display = "none";
-        loginMessage.textContent = "";
+  [loginMessage, registerMessage, resetMessage].forEach((msg) => {
+    if (msg) {
+      msg.style.display = "none";
+      msg.textContent = "";
+      msg.className = "auth-message";
     }
-
-    if (registerMessage) {
-
-        registerMessage.style.display = "none";
-        registerMessage.textContent = "";
-    }
+  });
 }
 
+function showLogin() {
+  clearMessages();
+  if (registerCard) registerCard.classList.add("hidden");
+  if (resetCard) resetCard.classList.add("hidden");
+  if (loginCard) loginCard.classList.remove("hidden");
+  if (window.location.hash !== "#login") {
+    history.replaceState(null, "", "#login");
+  }
+}
 
-function showLoginMessage(
-    message,
-    type = "error"
-) {
+function showRegister() {
+  clearMessages();
+  if (loginCard) loginCard.classList.add("hidden");
+  if (resetCard) resetCard.classList.add("hidden");
+  if (registerCard) registerCard.classList.remove("hidden");
+  if (window.location.hash !== "#register") {
+    history.replaceState(null, "", "#register");
+  }
+}
 
-    if (!loginMessage) {
-        return;
+function showReset() {
+  clearMessages();
+  if (loginCard) loginCard.classList.add("hidden");
+  if (registerCard) registerCard.classList.add("hidden");
+  if (resetCard) resetCard.classList.remove("hidden");
+  if (window.location.hash !== "#reset") {
+    history.replaceState(null, "", "#reset");
+  }
+
+  // Pre-fill reset email with whatever was typed in login email
+  const loginEmailInput = document.getElementById("loginEmail");
+  const resetEmailInput = document.getElementById("resetEmail");
+  if (loginEmailInput && resetEmailInput && loginEmailInput.value.trim() && !resetEmailInput.value.trim()) {
+    resetEmailInput.value = loginEmailInput.value.trim();
+  }
+}
+
+// Bind Navigation Triggers
+showRegisterBtn?.addEventListener("click", (e) => {
+  e.preventDefault();
+  showRegister();
+});
+
+showLoginBtn?.addEventListener("click", (e) => {
+  e.preventDefault();
+  showLogin();
+});
+
+forgotPasswordLink?.addEventListener("click", (e) => {
+  e.preventDefault();
+  showReset();
+});
+
+backToLoginBtn?.addEventListener("click", (e) => {
+  e.preventDefault();
+  showLogin();
+});
+
+// Hash change detection
+window.addEventListener("hashchange", () => {
+  const hash = window.location.hash.toLowerCase();
+  if (hash === "#register") showRegister();
+  else if (hash === "#reset" || hash === "#forgot") showReset();
+  else showLogin();
+});
+
+/* =========================================================
+   UI FEEDBACK HELPERS
+   ========================================================= */
+
+function showMessage(element, message, type = "error") {
+  if (!element) return;
+  element.style.display = "block";
+  element.textContent = message;
+  element.className = `auth-message ${type === "success" ? "success" : "error"}`;
+  element.style.color = type === "success" ? "#00ff88" : "#ff6b81";
+}
+
+function setBtnLoading(btn, textElem, spinnerElem, isLoading, defaultText) {
+  if (!btn) return;
+  btn.disabled = isLoading;
+  if (textElem) textElem.textContent = isLoading ? "Processing..." : defaultText;
+  if (spinnerElem) {
+    if (isLoading) spinnerElem.classList.remove("hidden");
+    else spinnerElem.classList.add("hidden");
+  }
+}
+
+function getRoleDisplayName(role) {
+  return role === "associate" ? "Associate (Security Engineer)" : "User (Standard Analyst)";
+}
+
+/* =========================================================
+   CHECK ACTIVE SESSION (Auto-redirect if already logged in)
+   ========================================================= */
+
+async function checkActiveSession() {
+  if (!sb) return;
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("action") === "logout") {
+    await sb.auth.signOut();
+    sessionStorage.removeItem("netarmor_profile");
+    return;
+  }
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session && session.user) {
+      // User is logged in, find profile
+      const { data: profile } = await sb
+        .from("profiles")
+        .select("role")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      const userRole = (profile?.role || "user").toLowerCase();
+      if (userRole === "associate") {
+        window.location.replace("admin-dashboard.html");
+      } else {
+        window.location.replace("dashboard.html");
+      }
+    }
+  } catch (err) {
+    console.warn("Session check bypassed:", err);
+  }
+}
+
+/* =========================================================
+   LOGIN FLOW
+   ========================================================= */
+
+loginForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  clearMessages();
+
+  if (!sb) {
+    showMessage(loginMessage, "Supabase client not initialized. Check supabase-config.js.");
+    return;
+  }
+
+  const roleElem = document.getElementById("loginRole");
+  const emailElem = document.getElementById("loginEmail");
+  const passwordElem = document.getElementById("loginPassword");
+
+  const selectedRole = roleElem ? roleElem.value : "user";
+  const email = emailElem ? emailElem.value.trim() : "";
+  const password = passwordElem ? passwordElem.value : "";
+
+  if (!email) {
+    showMessage(loginMessage, "Please enter your registered email address.");
+    emailElem?.focus();
+    return;
+  }
+
+  if (!password) {
+    showMessage(loginMessage, "Please enter your password.");
+    passwordElem?.focus();
+    return;
+  }
+
+  setBtnLoading(loginBtn, loginBtnText, loginSpinner, true, "Login");
+
+  try {
+    // 1. Sign in with Supabase Auth
+    const { data: authData, error: authError } = await sb.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (authError) throw new Error(authError.message);
+    if (!authData?.user) throw new Error("Authentication succeeded but no user data was returned.");
+
+    const user = authData.user;
+
+    // 2. Fetch User Profile
+    let { data: profile, error: profileError } = await sb
+      .from("profiles")
+      .select("id, username, full_name, role, email")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    // 3. Self-healing fallback: If profile record is missing, auto-create standard profile
+    if (!profile) {
+      console.warn("Profile missing for user. Self-healing default profile...");
+      const defaultUsername = user.user_metadata?.username || email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "");
+      const { data: newProfile, error: createError } = await sb
+        .from("profiles")
+        .insert({
+          id: user.id,
+          username: defaultUsername || `user_${user.id.slice(0, 6)}`,
+          email: user.email,
+          full_name: user.user_metadata?.full_name || defaultUsername,
+          role: "user"
+        })
+        .select()
+        .single();
+
+      if (!createError && newProfile) {
+        profile = newProfile;
+      } else {
+        // If insertion blocked by RLS, proceed with in-memory profile
+        profile = {
+          id: user.id,
+          username: defaultUsername,
+          role: "user",
+          email: user.email
+        };
+      }
     }
 
-    loginMessage.style.display = "block";
-    loginMessage.textContent = message;
+    const databaseRole = String(profile.role || "user").trim().toLowerCase();
 
-    if (type === "success") {
+    // 4. Role validation
+    if (selectedRole === "associate" && databaseRole !== "associate") {
+      await sb.auth.signOut();
+      throw new Error("Access Denied: This account is registered as 'Standard User'. Please select 'User (Standard Analyst)' to log in.");
+    }
 
-        loginMessage.style.color = "#00ff88";
+    // Save profile locally for swift retrieval
+    sessionStorage.setItem("netarmor_profile", JSON.stringify({
+      id: profile.id,
+      username: profile.username,
+      role: databaseRole,
+      full_name: profile.full_name || "",
+      email: user.email || ""
+    }));
+
+    showMessage(loginMessage, "Authentication successful! Redirecting...", "success");
+
+    setTimeout(() => {
+      if (databaseRole === "associate") {
+        window.location.replace("admin-dashboard.html");
+      } else {
+        window.location.replace("dashboard.html");
+      }
+    }, 450);
+
+  } catch (error) {
+    console.error("NetArmor Login Error:", error);
+    showMessage(loginMessage, error.message || "Login failed. Please verify your email and password.");
+  } finally {
+    setBtnLoading(loginBtn, loginBtnText, loginSpinner, false, "Login");
+  }
+});
+
+/* =========================================================
+   REGISTRATION FLOW
+   ========================================================= */
+
+registerForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  clearMessages();
+
+  if (!sb) {
+    showMessage(registerMessage, "Supabase client not initialized.");
+    return;
+  }
+
+  const usernameElem = document.getElementById("regUsername");
+  const emailElem = document.getElementById("regEmail");
+  const passwordElem = document.getElementById("regPassword");
+
+  const username = usernameElem ? usernameElem.value.trim() : "";
+  const email = emailElem ? emailElem.value.trim() : "";
+  const password = passwordElem ? passwordElem.value : "";
+
+  if (!username || username.length < 3) {
+    showMessage(registerMessage, "Username must contain at least 3 characters.");
+    usernameElem?.focus();
+    return;
+  }
+
+  if (!email) {
+    showMessage(registerMessage, "Please enter a valid email address.");
+    emailElem?.focus();
+    return;
+  }
+
+  if (!password || password.length < 8) {
+    showMessage(registerMessage, "Password must be at least 8 characters long.");
+    passwordElem?.focus();
+    return;
+  }
+
+  setBtnLoading(registerBtn, registerBtnText, registerSpinner, true, "Create Account");
+
+  try {
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username,
+          full_name: username,
+          role: "user"
+        }
+      }
+    });
+
+    if (error) throw new Error(error.message);
+
+    // If session was returned immediately (email confirmation disabled in Supabase)
+    if (data?.session && data?.user) {
+      // Ensure profile exists
+      try {
+        await sb.from("profiles").upsert({
+          id: data.user.id,
+          username: username,
+          email: email,
+          role: "user"
+        });
+      } catch (_) {}
+
+      sessionStorage.setItem("netarmor_profile", JSON.stringify({
+        id: data.user.id,
+        username: username,
+        role: "user",
+        email: email
+      }));
+
+      showMessage(registerMessage, "Account created successfully! Entering security console...", "success");
+      setTimeout(() => {
+        window.location.replace("dashboard.html");
+      }, 700);
 
     } else {
-
-        loginMessage.style.color = "#ff6b81";
-    }
-}
-
-
-function showRegisterMessage(
-    message,
-    type = "error"
-) {
-
-    if (!registerMessage) {
-        return;
+      // Email confirmation enabled in Supabase
+      showMessage(registerMessage, "Account created! A confirmation email has been sent. Please confirm your email, then log in.", "success");
+      setTimeout(() => {
+        showLogin();
+        const loginEmail = document.getElementById("loginEmail");
+        if (loginEmail) loginEmail.value = email;
+      }, 2000);
     }
 
-    registerMessage.style.display = "block";
-    registerMessage.textContent = message;
+  } catch (error) {
+    console.error("NetArmor Registration Error:", error);
+    showMessage(registerMessage, error.message || "Registration failed. Please try again.");
+  } finally {
+    setBtnLoading(registerBtn, registerBtnText, registerSpinner, false, "Create Account");
+  }
+});
 
-    if (type === "success") {
+/* =========================================================
+   PASSWORD RESET FLOW
+   ========================================================= */
 
-        registerMessage.style.color = "#00ff88";
+resetForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  clearMessages();
 
+  if (!sb) {
+    showMessage(resetMessage, "Supabase client not initialized.");
+    return;
+  }
+
+  const emailElem = document.getElementById("resetEmail");
+  const email = emailElem ? emailElem.value.trim() : "";
+
+  if (!email) {
+    showMessage(resetMessage, "Please enter your registered email address.");
+    emailElem?.focus();
+    return;
+  }
+
+  setBtnLoading(resetBtn, resetBtnText, resetSpinner, true, "Send Reset Link");
+
+  try {
+    const redirectUrl = `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}update-password.html`;
+
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl
+    });
+
+    if (error) throw new Error(error.message);
+
+    showMessage(
+      resetMessage,
+      "Password reset email sent! Check your inbox for the recovery link.",
+      "success"
+    );
+
+  } catch (error) {
+    console.error("NetArmor Password Reset Error:", error);
+    showMessage(resetMessage, error.message || "Failed to send reset link. Please check the email address.");
+  } finally {
+    setBtnLoading(resetBtn, resetBtnText, resetSpinner, false, "Send Reset Link");
+  }
+});
+
+/* =========================================================
+   PASSWORD VISIBILITY TOGGLES
+   ========================================================= */
+
+function setupPasswordToggle(inputId, buttonId) {
+  const input = document.getElementById(inputId);
+  const button = document.getElementById(buttonId);
+  if (!input || !button) return;
+
+  button.addEventListener("click", () => {
+    if (input.type === "password") {
+      input.type = "text";
+      button.textContent = "🙈";
+      button.setAttribute("aria-label", "Hide password");
     } else {
-
-        registerMessage.style.color = "#ff6b81";
+      input.type = "password";
+      button.textContent = "👁";
+      button.setAttribute("aria-label", "Show password");
     }
+  });
 }
 
+setupPasswordToggle("loginPassword", "loginPasswordToggle");
+setupPasswordToggle("regPassword", "registerPasswordToggle");
 
 /* =========================================================
-   ROLE NAME HELPER
+   INITIALIZATION
    ========================================================= */
 
-function getRoleName(role) {
-
-    if (role === "associate") {
-        return "Associate Security Engineer";
-    }
-
-    return "Standard User";
-}
-
-
-/* =========================================================
-   LOGIN
-   ========================================================= */
-
-if (loginForm) {
-
-    loginForm.addEventListener(
-        "submit",
-        async function (event) {
-
-            event.preventDefault();
-
-            clearMessages();
-
-
-            /* ---------------------------------------------
-               GET INPUT VALUES
-            --------------------------------------------- */
-
-            const roleElement =
-                document.getElementById("loginRole");
-
-            /*
-               IMPORTANT FIX:
-               HTML uses loginEmail.
-               The old JavaScript incorrectly used
-               loginIdentifier.
-            */
-            const emailElement =
-                document.getElementById("loginEmail");
-
-            const passwordElement =
-                document.getElementById("loginPassword");
-
-
-            const selectedRole =
-                roleElement
-                    ? roleElement.value
-                    : "user";
-
-
-            const email =
-                emailElement
-                    ? emailElement.value.trim()
-                    : "";
-
-
-            const password =
-                passwordElement
-                    ? passwordElement.value
-                    : "";
-
-
-            /* ---------------------------------------------
-               VALIDATION
-            --------------------------------------------- */
-
-            if (!email) {
-
-                showLoginMessage(
-                    "Please enter your email address."
-                );
-
-                if (emailElement) {
-                    emailElement.focus();
-                }
-
-                return;
-            }
-
-
-            if (!password) {
-
-                showLoginMessage(
-                    "Please enter your password."
-                );
-
-                if (passwordElement) {
-                    passwordElement.focus();
-                }
-
-                return;
-            }
-
-
-            if (!supabaseClient) {
-
-                showLoginMessage(
-                    "Supabase is not configured correctly."
-                );
-
-                return;
-            }
-
-
-            /* ---------------------------------------------
-               DISABLE LOGIN BUTTON
-            --------------------------------------------- */
-
-            if (loginBtn) {
-
-                loginBtn.disabled = true;
-
-                loginBtn.dataset.originalText =
-                    loginBtn.innerText;
-
-                loginBtn.innerText =
-                    "Authenticating...";
-            }
-
-
-            try {
-
-                /* =========================================
-                   STEP 1
-                   SIGN IN WITH SUPABASE
-                ========================================= */
-
-                const {
-                    data: authData,
-                    error: authError
-                } =
-                    await supabaseClient.auth.signInWithPassword({
-
-                        email: email,
-                        password: password
-
-                    });
-
-
-                if (authError) {
-
-                    throw new Error(
-                        authError.message
-                    );
-                }
-
-
-                if (
-                    !authData ||
-                    !authData.user
-                ) {
-
-                    throw new Error(
-                        "Login failed. Supabase did not return a user."
-                    );
-                }
-
-
-                const user = authData.user;
-
-
-                /* =========================================
-                   STEP 2
-                   GET USER PROFILE
-                ========================================= */
-
-                const {
-                    data: profile,
-                    error: profileError
-                } =
-                    await supabaseClient
-                        .from("profiles")
-                        .select(
-                            "id, username, role, full_name"
-                        )
-                        .eq(
-                            "id",
-                            user.id
-                        )
-                        .single();
-
-
-                if (profileError) {
-
-                    console.error(
-                        "Profile lookup error:",
-                        profileError
-                    );
-
-
-                    /*
-                     * Sign out if authentication worked
-                     * but the profile is missing.
-                     */
-
-                    await supabaseClient.auth.signOut();
-
-
-                    throw new Error(
-                        "Your account profile could not be found. Please contact the administrator."
-                    );
-                }
-
-
-                if (!profile) {
-
-                    await supabaseClient.auth.signOut();
-
-                    throw new Error(
-                        "No profile exists for this account."
-                    );
-                }
-
-
-                /* =========================================
-                   STEP 3
-                   NORMALIZE ROLE
-                ========================================= */
-
-                const databaseRole =
-                    String(
-                        profile.role || ""
-                    )
-                        .trim()
-                        .toLowerCase();
-
-
-                /* =========================================
-                   STEP 4
-                   VALIDATE ROLE
-                ========================================= */
-
-                if (
-                    databaseRole !== "user" &&
-                    databaseRole !== "associate"
-                ) {
-
-                    await supabaseClient.auth.signOut();
-
-                    throw new Error(
-                        "Your account has an invalid security role. Please contact the administrator."
-                    );
-                }
-
-
-                /* =========================================
-                   STEP 5
-                   CHECK SELECTED ROLE
-                ========================================= */
-
-                if (
-                    selectedRole !== databaseRole
-                ) {
-
-                    await supabaseClient.auth.signOut();
-
-                    throw new Error(
-                        `Role mismatch. This account is registered as "${getRoleName(databaseRole)}". Please select the correct role.`
-                    );
-                }
-
-
-                /* =========================================
-                   STEP 6
-                   SAVE USER PROFILE
-                ========================================= */
-
-                const profileToStore = {
-
-                    id: profile.id,
-
-                    username: profile.username,
-
-                    role: databaseRole,
-
-                    full_name:
-                        profile.full_name || "",
-
-                    email:
-                        user.email || ""
-                };
-
-
-                sessionStorage.setItem(
-                    "netarmor_profile",
-                    JSON.stringify(
-                        profileToStore
-                    )
-                );
-
-
-                /* =========================================
-                   STEP 7
-                   ROLE-BASED REDIRECTION
-                ========================================= */
-
-                if (
-                    databaseRole === "associate"
-                ) {
-
-                    /*
-                     * ASSOCIATE / ADMIN
-                     */
-
-                    window.location.replace(
-                        "admin-dashboard.html"
-                    );
-
-                } else {
-
-                    /*
-                     * STANDARD USER
-                     */
-
-                    window.location.replace(
-                        "dashboard.html"
-                    );
-                }
-
-            }
-
-            catch (error) {
-
-                console.error(
-                    "NetArmor login error:",
-                    error
-                );
-
-
-                showLoginMessage(
-                    error.message ||
-                    "Login failed. Please check your credentials."
-                );
-            }
-
-            finally {
-
-                if (loginBtn) {
-
-                    loginBtn.disabled = false;
-
-                    loginBtn.innerText =
-                        loginBtn.dataset.originalText ||
-                        "Login";
-                }
-            }
-        }
-    );
-}
-
-
-/* =========================================================
-   REGISTRATION
-   ========================================================= */
-
-if (registerForm) {
-
-    registerForm.addEventListener(
-        "submit",
-        async function (event) {
-
-            event.preventDefault();
-
-            clearMessages();
-
-
-            /* ---------------------------------------------
-               GET INPUTS
-            --------------------------------------------- */
-
-            const usernameElement =
-                document.getElementById("regUsername");
-
-            const emailElement =
-                document.getElementById("regEmail");
-
-            const passwordElement =
-                document.getElementById("regPassword");
-
-
-            const username =
-                usernameElement
-                    ? usernameElement.value.trim()
-                    : "";
-
-
-            const email =
-                emailElement
-                    ? emailElement.value.trim()
-                    : "";
-
-
-            const password =
-                passwordElement
-                    ? passwordElement.value
-                    : "";
-
-
-            /* ---------------------------------------------
-               VALIDATION
-            --------------------------------------------- */
-
-            if (!username) {
-
-                showRegisterMessage(
-                    "Please enter a username."
-                );
-
-                if (usernameElement) {
-                    usernameElement.focus();
-                }
-
-                return;
-            }
-
-
-            if (username.length < 3) {
-
-                showRegisterMessage(
-                    "Username must contain at least 3 characters."
-                );
-
-                if (usernameElement) {
-                    usernameElement.focus();
-                }
-
-                return;
-            }
-
-
-            if (!email) {
-
-                showRegisterMessage(
-                    "Please enter your email address."
-                );
-
-                if (emailElement) {
-                    emailElement.focus();
-                }
-
-                return;
-            }
-
-
-            if (!password) {
-
-                showRegisterMessage(
-                    "Please create a password."
-                );
-
-                if (passwordElement) {
-                    passwordElement.focus();
-                }
-
-                return;
-            }
-
-
-            /*
-               Match the HTML requirement:
-               minimum 8 characters.
-            */
-
-            if (password.length < 8) {
-
-                showRegisterMessage(
-                    "Password must contain at least 8 characters."
-                );
-
-                if (passwordElement) {
-                    passwordElement.focus();
-                }
-
-                return;
-            }
-
-
-            if (!supabaseClient) {
-
-                showRegisterMessage(
-                    "Supabase is not configured correctly."
-                );
-
-                return;
-            }
-
-
-            /* ---------------------------------------------
-               DISABLE REGISTER BUTTON
-            --------------------------------------------- */
-
-            if (registerBtn) {
-
-                registerBtn.disabled = true;
-
-                registerBtn.dataset.originalText =
-                    registerBtn.innerText;
-
-                registerBtn.innerText =
-                    "Creating Account...";
-            }
-
-
-            try {
-
-                /* =========================================
-                   CREATE SUPABASE ACCOUNT
-                ========================================= */
-
-                const {
-                    data,
-                    error
-                } =
-                    await supabaseClient.auth.signUp({
-
-                        email: email,
-
-                        password: password,
-
-                        options: {
-
-                            data: {
-
-                                username:
-                                    username,
-
-                                role: "user"
-                            }
-                        }
-                    });
-
-
-                if (error) {
-
-                    throw new Error(
-                        error.message
-                    );
-                }
-
-
-                console.log(
-                    "NetArmor registration:",
-                    data
-                );
-
-
-                /*
-                 * Public registration always creates
-                 * a STANDARD USER.
-                 *
-                 * Associate/Admin accounts must be
-                 * promoted manually in Supabase.
-                 */
-
-
-                /*
-                 * If email confirmation is enabled,
-                 * Supabase will not immediately provide
-                 * a session.
-                 */
-
-                if (
-                    data &&
-                    data.user &&
-                    !data.session
-                ) {
-
-                    showRegisterMessage(
-                        "Account created successfully. Please check your email and confirm your account before logging in.",
-                        "success"
-                    );
-
-                } else {
-
-                    showRegisterMessage(
-                        "Account created successfully. You can now log in.",
-                        "success"
-                    );
-                }
-
-
-                /* -----------------------------------------
-                   RETURN TO LOGIN
-                ----------------------------------------- */
-
-                setTimeout(
-                    function () {
-
-                        showLogin();
-
-
-                        /*
-                         * Put registered email into
-                         * the correct login field.
-                         */
-
-                        const loginEmail =
-                            document.getElementById(
-                                "loginEmail"
-                            );
-
-
-                        if (loginEmail) {
-
-                            loginEmail.value =
-                                email;
-                        }
-
-
-                        /*
-                         * Standard user is the
-                         * default registration role.
-                         */
-
-                        const loginRole =
-                            document.getElementById(
-                                "loginRole"
-                            );
-
-
-                        if (loginRole) {
-
-                            loginRole.value =
-                                "user";
-                        }
-
-
-                        const loginPassword =
-                            document.getElementById(
-                                "loginPassword"
-                            );
-
-
-                        if (loginPassword) {
-
-                            loginPassword.value =
-                                "";
-                        }
-
-                    },
-                    1500
-                );
-
-            }
-
-            catch (error) {
-
-                console.error(
-                    "NetArmor registration error:",
-                    error
-                );
-
-
-                showRegisterMessage(
-                    error.message ||
-                    "Registration failed. Please try again."
-                );
-            }
-
-            finally {
-
-                if (registerBtn) {
-
-                    registerBtn.disabled = false;
-
-                    registerBtn.innerText =
-                        registerBtn.dataset.originalText ||
-                        "Create Account";
-                }
-            }
-        }
-    );
-}
-
-
-/* =========================================================
-   FORGOT PASSWORD
-   ========================================================= */
-
-if (forgotPasswordBtn) {
-
-    forgotPasswordBtn.addEventListener(
-        "click",
-        async function (event) {
-
-            event.preventDefault();
-
-            clearMessages();
-
-
-            /*
-             * IMPORTANT FIX:
-             * Your HTML uses loginEmail.
-             */
-
-            const emailElement =
-                document.getElementById(
-                    "loginEmail"
-                );
-
-
-            const email =
-                emailElement
-                    ? emailElement.value.trim()
-                    : "";
-
-
-            if (!email) {
-
-                showLoginMessage(
-                    "Please enter your email address first."
-                );
-
-
-                if (emailElement) {
-                    emailElement.focus();
-                }
-
-
-                return;
-            }
-
-
-            if (!supabaseClient) {
-
-                showLoginMessage(
-                    "Supabase is not configured correctly."
-                );
-
-                return;
-            }
-
-
-            try {
-
-                /* =========================================
-                   PASSWORD RESET
-                ========================================= */
-
-                const {
-                    error
-                } =
-                    await supabaseClient.auth
-                        .resetPasswordForEmail(
-                            email,
-                            {
-
-                                redirectTo:
-                                    `${window.location.origin}/update-password.html`
-
-                            }
-                        );
-
-
-                if (error) {
-
-                    throw new Error(
-                        error.message
-                    );
-                }
-
-
-                showLoginMessage(
-                    "Password reset instructions have been sent to your email.",
-                    "success"
-                );
-
-            }
-
-            catch (error) {
-
-                console.error(
-                    "Password reset error:",
-                    error
-                );
-
-
-                showLoginMessage(
-                    error.message ||
-                    "Unable to send password reset instructions."
-                );
-            }
-        }
-    );
-}
-
-
-/* =========================================================
-   PASSWORD SHOW / HIDE
-   ========================================================= */
-
-function setupPasswordToggle(
-    inputId,
-    buttonId
-) {
-
-    const input =
-        document.getElementById(inputId);
-
-    const button =
-        document.getElementById(buttonId);
-
-
-    if (!input || !button) {
-        return;
-    }
-
-
-    button.addEventListener(
-        "click",
-        function () {
-
-            if (input.type === "password") {
-
-                input.type = "text";
-
-                button.textContent = "🙈";
-
-                button.setAttribute(
-                    "aria-label",
-                    "Hide password"
-                );
-
-            } else {
-
-                input.type = "password";
-
-                button.textContent = "👁";
-
-                button.setAttribute(
-                    "aria-label",
-                    "Show password"
-                );
-            }
-        }
-    );
-}
-
-
-setupPasswordToggle(
-    "loginPassword",
-    "loginPasswordToggle"
-);
-
-
-setupPasswordToggle(
-    "regPassword",
-    "registerPasswordToggle"
-);
-
-
-/* =========================================================
-   INITIAL PAGE
-   ========================================================= */
-
-if (
-    window.location.hash === "#register"
-) {
-
+document.addEventListener("DOMContentLoaded", () => {
+  const hash = window.location.hash.toLowerCase();
+  if (hash === "#register") {
     showRegister();
-
-} else {
-
+  } else if (hash === "#reset" || hash === "#forgot") {
+    showReset();
+  } else {
     showLogin();
-}
+  }
 
-
-/* =========================================================
-   DEBUG INFORMATION
-   ========================================================= */
-
-console.log(
-    "NetArmor AI authentication system initialized."
-);
-
-console.log(
-    "Login email field:",
-    document.getElementById("loginEmail")
-);
-
-console.log(
-    "Login form:",
-    document.getElementById("loginForm")
-);
-
-console.log(
-    "Supabase client:",
-    supabaseClient ? "Connected" : "Missing"
-);
-
-
+  checkActiveSession();
+});

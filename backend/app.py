@@ -8,13 +8,17 @@ from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from google import genai
+from google.genai import types
 from pypdf import PdfReader
 
 # Explicitly load local .env if present
 load_dotenv()
 
-# Add project root to sys.path to resolve ml_pipeline imports
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# Determine project base directory
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
+
 from ml_pipeline.url_features import extract_url_features
 
 app = FastAPI(
@@ -50,10 +54,38 @@ Your Role:
 - Provide actionable cybersecurity advice on recognizing social engineering and zero-day scams.
 """
 
-# Paths to trained model artifacts
-VECTORIZER_PATH = os.path.join("ml_pipeline", "saved_models", "tfidf_vectorizer.pkl")
-MODEL_PATH = os.path.join("ml_pipeline", "saved_models", "email_model.pkl")
-URL_MODEL_PATH = os.path.join("ml_pipeline", "saved_models", "url_model.pkl")
+# Absolute paths to trained model artifacts
+VECTORIZER_PATH = os.path.join(BASE_DIR, "ml_pipeline", "saved_models", "tfidf_vectorizer.pkl")
+MODEL_PATH = os.path.join(BASE_DIR, "ml_pipeline", "saved_models", "email_model.pkl")
+URL_MODEL_PATH = os.path.join(BASE_DIR, "ml_pipeline", "saved_models", "url_model.pkl")
+
+# Cached model references to eliminate reload latency
+_email_model = None
+_vectorizer = None
+_url_model = None
+
+def get_url_model():
+    global _url_model
+    if _url_model is None and os.path.exists(URL_MODEL_PATH):
+        try:
+            _url_model = joblib.load(URL_MODEL_PATH)
+        except Exception as e:
+            print(f"Warning: Failed to load URL model from {URL_MODEL_PATH}: {e}")
+    return _url_model
+
+def get_email_model_and_vectorizer():
+    global _email_model, _vectorizer
+    if _vectorizer is None and os.path.exists(VECTORIZER_PATH):
+        try:
+            _vectorizer = joblib.load(VECTORIZER_PATH)
+        except Exception as e:
+            print(f"Warning: Failed to load TF-IDF vectorizer from {VECTORIZER_PATH}: {e}")
+    if _email_model is None and os.path.exists(MODEL_PATH):
+        try:
+            _email_model = joblib.load(MODEL_PATH)
+        except Exception as e:
+            print(f"Warning: Failed to load Email model from {MODEL_PATH}: {e}")
+    return _vectorizer, _email_model
 
 # Request Schemas
 class URLRequest(BaseModel):
@@ -69,11 +101,13 @@ class ChatRequest(BaseModel):
     message: str
 
 @app.get("/")
+@app.get("/api/health")
 def health_check():
     return {
         "status": "online",
         "system": "NetArmor AI Backend",
-        "project": "Automated Phishing Website & Email Detection System"
+        "project": "Automated Phishing Website & Email Detection System",
+        "version": "2.4"
     }
 
 # -------------------------------------------------------------
@@ -87,17 +121,22 @@ def predict_url(payload: URLRequest):
 
     # 1. Extract feature vector
     features = extract_url_features(payload.url)
-    # Ensure flat 1D vector
     raw = features[0] if (isinstance(features, list) and isinstance(features[0], list)) else features
 
     # 2. Model Inference
-    if os.path.exists(URL_MODEL_PATH):
-        model = joblib.load(URL_MODEL_PATH)
-        # Predict probability of class 1 (Phishing)
-        prob = model.predict_proba([raw])[0][1] * 100
-        risk_percentage = round(float(prob), 2)
+    url_model = get_url_model()
+    if url_model is not None:
+        try:
+            prob = url_model.predict_proba([raw])[0][1] * 100
+            risk_percentage = round(float(prob), 2)
+        except Exception as e:
+            print(f"Inference error with URL model: {e}")
+            risk_percentage = None
     else:
-        # Fallback heuristic calculation if model file is missing
+        risk_percentage = None
+
+    if risk_percentage is None:
+        # Fallback heuristic calculation if model file is missing or failed
         score = 10.0
         if raw[1] == 1: score += 35
         if raw[2] == 1: score += 40
@@ -113,11 +152,11 @@ def predict_url(payload: URLRequest):
     if raw[2] == 1:
         reasons.append("Uses raw IP address instead of a valid domain name.")
     if raw[3] > 3:
-        reasons.append("Abnormal number of subdomains detected.")
+        reasons.append(f"Abnormal number of subdomains detected ({raw[3]} dots).")
     if raw[6] == 1:
-        reasons.append("Contains suspicious credential-harvesting keywords.")
+        reasons.append("Contains suspicious credential-harvesting keywords (e.g. login, verify, banking).")
     if raw[5] == 0:
-        reasons.append("Insecure HTTP protocol.")
+        reasons.append("Insecure HTTP protocol (missing SSL/TLS certificate).")
 
     verdict = "Phishing / Malicious" if risk_percentage >= 50.0 else "Safe / Legitimate"
 
@@ -134,17 +173,15 @@ def predict_url(payload: URLRequest):
 @app.post("/api/predict-email")
 def predict_email(payload: EmailRequest):
     """Email NLP TF-IDF + XGBoost prediction endpoint."""
-    if not os.path.exists(VECTORIZER_PATH) or not os.path.exists(MODEL_PATH):
-        raise HTTPException(status_code=500, detail="Model files not found. Run train_email_model.py first.")
+    vectorizer, email_model = get_email_model_and_vectorizer()
+    if vectorizer is None or email_model is None:
+        raise HTTPException(status_code=500, detail="Model files not found or failed to load. Check ml_pipeline/saved_models.")
 
     if not payload.text or payload.text.strip() == "":
         raise HTTPException(status_code=400, detail="Email body text cannot be empty.")
 
-    vectorizer = joblib.load(VECTORIZER_PATH)
-    model = joblib.load(MODEL_PATH)
-
     transformed_vector = vectorizer.transform([payload.text])
-    probabilities = model.predict_proba(transformed_vector)[0]
+    probabilities = email_model.predict_proba(transformed_vector)[0]
     spam_prob = round(float(probabilities[1]) * 100, 2)
     verdict = "Phishing / Spam" if spam_prob >= 50.0 else "Safe / Legitimate"
 
@@ -166,13 +203,12 @@ def predict_message(payload: MessageRequest):
     url_pattern = r"(https?://[^\s]+|www\.[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/[^\s]*)"
     extracted_urls = re.findall(url_pattern, text)
 
-    if not os.path.exists(VECTORIZER_PATH) or not os.path.exists(MODEL_PATH):
-        raise HTTPException(status_code=500, detail="Model files not found. Run train_email_model.py first.")
+    vectorizer, email_model = get_email_model_and_vectorizer()
+    if vectorizer is None or email_model is None:
+        raise HTTPException(status_code=500, detail="Model files not found or failed to load. Check ml_pipeline/saved_models.")
 
-    vectorizer = joblib.load(VECTORIZER_PATH)
-    model = joblib.load(MODEL_PATH)
     transformed = vectorizer.transform([text])
-    nlp_prob = float(model.predict_proba(transformed)[0][1] * 100)
+    nlp_prob = float(email_model.predict_proba(transformed)[0][1] * 100)
 
     flags = []
     smishing_patterns = [r"\botp\b", r"\bkyc\b", r"\bblocked\b", r"\bwin\b", r"\bprize\b", r"\brefund\b", r"\burgent\b", r"\bverify\b"]
@@ -237,17 +273,19 @@ async def scan_document(file: UploadFile = File(...)):
         pass
 
     nlp_score = 0.0
-    if extracted_text.strip() and os.path.exists(VECTORIZER_PATH) and os.path.exists(MODEL_PATH):
-        vectorizer = joblib.load(VECTORIZER_PATH)
-        model = joblib.load(MODEL_PATH)
-        vec = vectorizer.transform([extracted_text])
-        nlp_score = float(model.predict_proba(vec)[0][1] * 100)
+    vectorizer, email_model = get_email_model_and_vectorizer()
+    if extracted_text.strip() and vectorizer and email_model:
+        try:
+            vec = vectorizer.transform([extracted_text])
+            nlp_score = float(email_model.predict_proba(vec)[0][1] * 100)
+        except Exception as e:
+            print(f"Error vectorizing extracted PDF text: {e}")
 
     flags = []
     if has_javascript:
         flags.append("Active JavaScript stream detected in PDF objects.")
     if extracted_urls:
-        flags.append(f"Extracted {len(extracted_urls)} embedded hyper link(s).")
+        flags.append(f"Extracted {len(extracted_urls)} embedded hyperlink(s).")
     if nlp_score >= 50.0:
         flags.append(f"Manipulative social engineering text detected ({nlp_score:.1f}% confidence).")
 
@@ -273,18 +311,28 @@ def chat_with_assistant(payload: ChatRequest):
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        return {"reply": "Server error: GEMINI_API_KEY environment variable is not configured."}
+        return {"reply": "ArmorBot notice: GEMINI_API_KEY environment variable is not configured."}
 
-    try:
-        client = genai.Client(api_key=api_key)
-        chat = client.chats.create(
-            model="gemini-2.5-flash",
-            config={
-                "system_instruction": NETARMOR_KNOWLEDGE
-            }
-        )
-        response = chat.send_message(payload.message)
-        return {"reply": response.text}
-    except Exception as e:
-        print(f"Chatbot Exception Log: {e}")
-        return {"reply": f"Unable to reach Gemini API: {str(e)}"}
+    client = genai.Client(api_key=api_key)
+    
+    # Try gemini-2.5-flash with fallback to gemini-2.0-flash
+    models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+    last_error = None
+
+    for model_name in models_to_try:
+        try:
+            chat = client.chats.create(
+                model=model_name,
+                config=types.GenerateContentConfig(
+                    system_instruction=NETARMOR_KNOWLEDGE,
+                    temperature=0.7
+                )
+            )
+            response = chat.send_message(payload.message)
+            if response and response.text:
+                return {"reply": response.text}
+        except Exception as e:
+            last_error = e
+            print(f"Chatbot failed with model {model_name}: {e}")
+
+    return {"reply": f"ArmorBot is currently unavailable: {str(last_error)}"}

@@ -1,9 +1,14 @@
 /* =========================================================
    NetArmor AI - Scanner Hub Engine (detect.js)
+   Multi-Vector Diagnostics, Telemetry & Assistant Interface
    ========================================================= */
 
-const API_BASE = window.NETARMOR_CONFIG?.API_BASE_URL || "https://netarmor-ai.onrender.com";
 const sb = window.netarmorSupabase;
+let currentApiBase = null;
+let selectedPdfFile = null;
+
+// Helper to delay execution for visual scanner feedback
+const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (c) => ({
@@ -11,47 +16,94 @@ function escapeHtml(value) {
   })[c]);
 }
 
-function sanitizeHistoryTarget(scanType, target) {
-  if (scanType === "url") {
-    try {
-      const parsed = new URL(target);
-      return `${parsed.origin}${parsed.pathname}`.slice(0, 500);
-    } catch (_) {
-      return String(target).split(/[?#]/)[0].slice(0, 500);
-    }
+// Dynamically resolve fastest online API (Localhost if active, else Render cloud)
+async function getApiBase() {
+  if (currentApiBase) return currentApiBase;
+  if (typeof window.resolveNetArmorApi === "function") {
+    currentApiBase = await window.resolveNetArmorApi();
+    return currentApiBase;
   }
-  return String(target).slice(0, 200);
+  return "https://netarmor-ai.onrender.com";
 }
 
+// Show subtle toast notification
+function showScanToast(message) {
+  const toast = document.getElementById("scanToast");
+  if (!toast) return;
+  toast.textContent = message || "✓ Telemetry record saved to your NetArmor dashboard";
+  toast.style.opacity = "1";
+  toast.style.transform = "translateX(-50%) translateY(0)";
+
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(-50%) translateY(100px)";
+  }, 3200);
+}
+
+// Record scan telemetry to Supabase scan_history
 async function recordScan(scanType, target, riskScore) {
   if (!sb) return;
   try {
     const { data: { user } } = await sb.auth.getUser();
-    if (!user) return;
+    if (!user) return; // Unauthenticated guest scan
+
+    const cleanTarget = String(target || "Scan diagnosis").slice(0, 300);
+    const scoreNum = Math.max(0, Math.min(100, Number(riskScore) || 0));
+
     const { error } = await sb.from("scan_history").insert({
       user_id: user.id,
       scan_type: scanType,
-      target: sanitizeHistoryTarget(scanType, target),
-      result: Number(riskScore) >= 50 ? "Threat" : "Safe",
-      risk_score: Math.max(0, Math.min(100, Number(riskScore) || 0))
+      target: cleanTarget,
+      result: scoreNum >= 50 ? "Threat" : "Safe",
+      risk_score: scoreNum
     });
-    if (error) console.warn("Scan history was not saved:", error.message);
+
+    if (!error) {
+      showScanToast("✓ Telemetry record saved to your dashboard history");
+    } else {
+      console.warn("Scan history save warning:", error.message);
+    }
   } catch (error) {
-    console.warn("Scan history error:", error);
+    console.warn("Telemetry record bypassed:", error);
   }
 }
-let selectedPdfFile = null;
 
-// Helper to delay execution for visual scanner feedback
-const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+// Update navbar based on authentication session
+async function updateAuthNav() {
+  if (!sb) return;
+  const navDashboardBtn = document.getElementById("navDashboardBtn");
+  const navLoginBtn = document.getElementById("navLoginBtn");
 
-// --- 1. Auto-Redirect to index.html on Browser Page Reload ---
-const navEntry = performance.getEntriesByType("navigation")[0];
-if (navEntry && navEntry.type === "reload") {
-  window.location.replace("index.html");
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session && session.user) {
+      if (navLoginBtn) navLoginBtn.style.display = "none";
+      if (navDashboardBtn) {
+        navDashboardBtn.style.display = "inline-block";
+        const { data: profile } = await sb
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .maybeSingle();
+
+        if (profile?.role === "associate") {
+          navDashboardBtn.href = "admin-dashboard.html";
+          navDashboardBtn.textContent = "Admin Console";
+        } else {
+          navDashboardBtn.href = "dashboard.html";
+          navDashboardBtn.textContent = "Dashboard";
+        }
+      }
+    } else {
+      if (navLoginBtn) navLoginBtn.style.display = "inline-block";
+      if (navDashboardBtn) navDashboardBtn.style.display = "none";
+    }
+  } catch (err) {
+    console.warn("Auth nav check bypassed:", err);
+  }
 }
 
-// --- 2. Dynamic Radar HUD Preloader Sequence ---
+// --- 1. Dynamic Radar HUD Preloader Sequence ---
 window.addEventListener("DOMContentLoaded", () => {
   const loader = document.getElementById("skeletonLoader");
   const statusElem = document.getElementById("skeletonStatus");
@@ -85,7 +137,7 @@ window.addEventListener("DOMContentLoaded", () => {
         if (loader) loader.classList.add("fade-out");
       }, 250);
     }
-  }, 35);
+  }, 30);
 
   // Auto-switch tab if redirected with ?tab=email, ?tab=url, ?tab=message, or ?tab=document
   const params = new URLSearchParams(window.location.search);
@@ -95,9 +147,10 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   setupDropZone();
+  updateAuthNav();
 });
 
-// --- 3. Dark & Light Mode Theme Switcher ---
+// --- 2. Dark & Light Mode Theme Switcher ---
 const themeToggleBtn = document.getElementById("themeToggleBtn");
 const htmlRoot = document.documentElement;
 
@@ -108,13 +161,12 @@ if (themeToggleBtn) {
   themeToggleBtn.addEventListener("click", () => {
     const currentTheme = htmlRoot.getAttribute("data-theme");
     const nextTheme = currentTheme === "dark" ? "light" : "dark";
-    
     htmlRoot.setAttribute("data-theme", nextTheme);
     localStorage.setItem("netarmor-theme", nextTheme);
   });
 }
 
-// --- 4. Interactive Tab Switching (4 Modes) ---
+// --- 3. Interactive Tab Switching (4 Modes) ---
 function switchTab(type) {
   const tabs = ["url", "email", "message", "document"];
   tabs.forEach((tab) => {
@@ -132,7 +184,7 @@ function switchTab(type) {
   });
 }
 
-// --- 5. Interactive Green Topology Canvas Animation ---
+// --- 4. Interactive Green Topology Canvas Animation ---
 const canvas = document.getElementById("particleCanvas");
 if (canvas) {
   const ctx = canvas.getContext("2d");
@@ -287,7 +339,7 @@ if (canvas) {
   renderNetwork();
 }
 
-// --- 6. URL Scanner API Caller ---
+// --- 5. URL Scanner API Caller ---
 async function analyzeURL() {
   const url = document.getElementById("urlInput").value.trim();
   if (!url) return alert("Please enter a valid website URL to analyze.");
@@ -297,13 +349,14 @@ async function analyzeURL() {
   scanBtn.disabled = true;
 
   try {
+    const apiBase = await getApiBase();
     const [res] = await Promise.all([
-      fetch(`${API_BASE}/api/predict-url`, {
+      fetch(`${apiBase}/api/predict-url`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url })
       }),
-      delay(600)
+      delay(500)
     ]);
     
     if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
@@ -333,14 +386,14 @@ async function analyzeURL() {
     await recordScan("url", url, data.risk_percentage);
 
   } catch (err) {
-    alert("Backend server offline. Ensure FastAPI is running on port 8000.");
+    alert("Threat engine unavailable. Please ensure your FastAPI backend is running or cloud service has started.");
   } finally {
     scanBtn.innerText = "Scan Website URL";
     scanBtn.disabled = false;
   }
 }
 
-// --- 7. Email NLP Scanner API Caller ---
+// --- 6. Email NLP Scanner API Caller ---
 async function analyzeEmail() {
   const text = document.getElementById("emailInput").value.trim();
   if (!text) return alert("Please paste the email text to analyze.");
@@ -350,13 +403,14 @@ async function analyzeEmail() {
   scanBtn.disabled = true;
 
   try {
+    const apiBase = await getApiBase();
     const [res] = await Promise.all([
-      fetch(`${API_BASE}/api/predict-email`, {
+      fetch(`${apiBase}/api/predict-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text })
       }),
-      delay(600)
+      delay(500)
     ]);
 
     if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
@@ -381,17 +435,18 @@ async function analyzeEmail() {
       verdictText.innerText = "No high-risk patterns were identified by the configured model.";
     }
 
-    await recordScan("email", "Email analysis", data.risk_percentage);
+    const snippet = text.slice(0, 85).replace(/\s+/g, " ");
+    await recordScan("email", snippet, data.risk_percentage);
 
   } catch (err) {
-    alert("Backend server offline. Ensure FastAPI is running on port 8000.");
+    alert("NLP engine unavailable. Please ensure your FastAPI backend is running.");
   } finally {
     scanBtn.innerText = "Analyze Email Text";
     scanBtn.disabled = false;
   }
 }
 
-// --- 8. SMS & Social Media Smishing Scanner API Caller ---
+// --- 7. SMS & Social Media Smishing Scanner API Caller ---
 async function analyzeMessage() {
   const msgInput = document.getElementById("messageInput");
   if (!msgInput) return;
@@ -403,13 +458,14 @@ async function analyzeMessage() {
   scanBtn.disabled = true;
 
   try {
+    const apiBase = await getApiBase();
     const [res] = await Promise.all([
-      fetch(`${API_BASE}/api/predict-message`, {
+      fetch(`${apiBase}/api/predict-message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message })
       }),
-      delay(600)
+      delay(500)
     ]);
 
     if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
@@ -436,17 +492,18 @@ async function analyzeMessage() {
       ? data.flags.map(f => `<li>${escapeHtml(f)}</li>`).join("")
       : "<li>No high-risk smishing or social engineering triggers identified.</li>";
 
-    await recordScan("message", "Message analysis", data.risk_percentage);
+    const snippet = message.slice(0, 85).replace(/\s+/g, " ");
+    await recordScan("message", snippet, data.risk_percentage);
 
   } catch (err) {
-    alert("Backend server offline. Ensure FastAPI is running on port 8000.");
+    alert("Smishing engine unavailable. Please ensure your FastAPI backend is running.");
   } finally {
     scanBtn.innerText = "Scan Message Content";
     scanBtn.disabled = false;
   }
 }
 
-// --- 9. PDF Document Scanner API Caller & Dropzone Logic ---
+// --- 8. PDF Document Scanner API Caller & Dropzone Logic ---
 function handleFileSelected(e) {
   const file = e.target.files[0];
   if (file) {
@@ -499,12 +556,13 @@ async function analyzeDocument() {
   formData.append("file", selectedPdfFile);
 
   try {
+    const apiBase = await getApiBase();
     const [res] = await Promise.all([
-      fetch(`${API_BASE}/api/scan-document`, {
+      fetch(`${apiBase}/api/scan-document`, {
         method: "POST",
         body: formData
       }),
-      delay(800)
+      delay(600)
     ]);
 
     if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
@@ -541,7 +599,7 @@ async function analyzeDocument() {
       }
     }
 
-    await recordScan("document", "PDF document", data.risk_percentage);
+    await recordScan("document", selectedPdfFile.name, data.risk_percentage);
 
   } catch (err) {
     alert(err.message || "Unable to scan the PDF. Please try again.");
@@ -551,7 +609,7 @@ async function analyzeDocument() {
   }
 }
 
-// --- 10. Live Backend Health Status Poller ---
+// --- 9. Live Backend Health Status Poller ---
 async function checkBackendHealth() {
   const pill = document.getElementById("backendStatusPill");
   const text = document.getElementById("backendStatusText");
@@ -560,10 +618,11 @@ async function checkBackendHealth() {
   if (!pill || !text || !dot) return;
 
   try {
+    const apiBase = await getApiBase();
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-    const res = await fetch(`${API_BASE}/`, {
+    const res = await fetch(`${apiBase}/api/health`, {
       method: "GET",
       signal: controller.signal
     });
@@ -571,7 +630,7 @@ async function checkBackendHealth() {
     clearTimeout(timeoutId);
     if (res.ok) {
       pill.className = "system-status-pill status-online";
-      text.innerText = "Online";
+      text.innerText = apiBase.includes("127.0.0.1") || apiBase.includes("localhost") ? "Online (Local)" : "Online (Cloud)";
     } else {
       throw new Error();
     }
@@ -583,7 +642,7 @@ async function checkBackendHealth() {
 
 document.addEventListener("DOMContentLoaded", () => {
   checkBackendHealth();
-  setInterval(checkBackendHealth, 5000);
+  setInterval(checkBackendHealth, 6000);
 });
 
 // =========================================================
@@ -632,7 +691,8 @@ async function handleSendMessage() {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
   try {
-    const response = await fetch(`${API_BASE}/api/chat`, {
+    const apiBase = await getApiBase();
+    const response = await fetch(`${apiBase}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: userText })
@@ -663,5 +723,3 @@ if (chatInput) {
     }
   });
 }
-
-

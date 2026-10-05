@@ -1,4 +1,20 @@
-const API_BASE = "https://netarmor-ai.onrender.com";
+let activeApiBase = null;
+
+async function getApiEndpoint() {
+  if (activeApiBase) return activeApiBase;
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 600);
+    const res = await fetch("http://127.0.0.1:8000/api/health", { method: "GET", signal: ctrl.signal });
+    clearTimeout(to);
+    if (res.ok) {
+      activeApiBase = "http://127.0.0.1:8000";
+      return activeApiBase;
+    }
+  } catch (_) {}
+  activeApiBase = "https://netarmor-ai.onrender.com";
+  return activeApiBase;
+}
 
 // --- Tab Navigation Switcher ---
 function setTab(activeKey) {
@@ -34,8 +50,12 @@ async function scanActiveTab() {
     }
 
     urlBox.innerText = tab.url;
+    scoreElem.innerText = "--%";
+    badgeElem.innerText = "Scanning...";
+    badgeElem.className = "badge";
 
-    const res = await fetch(`${API_BASE}/api/predict-url`, {
+    const apiBase = await getApiEndpoint();
+    const res = await fetch(`${apiBase}/api/predict-url`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: tab.url })
@@ -72,7 +92,8 @@ async function scanEmailText() {
   btn.disabled = true;
 
   try {
-    const res = await fetch(`${API_BASE}/api/predict-email`, {
+    const apiBase = await getApiEndpoint();
+    const res = await fetch(`${apiBase}/api/predict-email`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text })
@@ -112,7 +133,8 @@ async function scanMessageText() {
   btn.disabled = true;
 
   try {
-    const res = await fetch(`${API_BASE}/api/predict-message`, {
+    const apiBase = await getApiEndpoint();
+    const res = await fetch(`${apiBase}/api/predict-message`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message })

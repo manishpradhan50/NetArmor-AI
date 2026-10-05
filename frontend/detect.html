@@ -86,6 +86,8 @@
           <span class="moon-icon">🌙</span>
         </button>
 
+        <a href="dashboard.html" class="nav-cta" id="navDashboardBtn" style="display: none; padding: 6px 14px; font-size: 0.8rem; text-decoration: none;">Dashboard</a>
+        <a href="login.html" class="nav-back-link" id="navLoginBtn" style="text-decoration: none;">Login</a>
         <a href="index.html" class="nav-back-link">← Back to Home</a>
       </div>
     </header>
@@ -296,6 +298,14 @@
     </div>
   </div>
 
+  <!-- Telemetry Scan Recorded Toast -->
+  <div id="scanToast" style="position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(6, 26, 17, 0.95); border: 1px solid var(--neon-green); color: var(--neon-green); padding: 10px 22px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; box-shadow: 0 10px 25px rgba(0, 255, 136, 0.3); z-index: 9999; transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; opacity: 0;">
+    ✓ Telemetry record saved to your NetArmor dashboard
+  </div>
+
+  <!-- Supabase & NetArmor Config -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
   <script src="detect.js"></script>
 </body>
 </html>

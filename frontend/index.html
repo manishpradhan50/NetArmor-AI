@@ -57,7 +57,7 @@
       </div>
       
       <!-- Mobile Drawer Login & Launch CTAs -->
-      <a href="login.html" class="nav-btn-login mobile-only-cta">Login</a>
+      <a href="login.html" class="nav-btn-login mobile-only-cta" id="mobileLoginBtn">Login</a>
       <a href="detect.html" class="nav-cta mobile-only-cta">Launch Scanner →</a>
     </nav>
 
@@ -76,7 +76,7 @@
       </button>
 
       <!-- Desktop Login CTA -->
-      <a href="login.html" class="nav-btn-login desktop-only-cta">Login</a>
+      <a href="login.html" class="nav-btn-login desktop-only-cta" id="desktopLoginBtn">Login</a>
 
       <!-- Desktop Launch CTA -->
       <a href="detect.html" class="nav-cta desktop-only-cta">Launch Scanner →</a>
@@ -293,6 +293,8 @@
     </div>
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
   <script src="home.js"></script>
 </body>
 </html>
