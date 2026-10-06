@@ -1,9 +1,10 @@
 /* =========================================================
    NetArmor AI - Authentication System (login.js)
-   Fully Integrated with Supabase Auth & Role-Based Access
+   Fully Integrated with Google Firebase Auth & Cloud Firestore
    ========================================================= */
 
-const sb = window.netarmorSupabase;
+const getAuth = () => window.netarmorAuth;
+const getDb = () => window.netarmorDb;
 
 // DOM Elements
 const loginCard = document.getElementById("loginCard");
@@ -34,6 +35,33 @@ const showRegisterBtn = document.getElementById("showRegister");
 const showLoginBtn = document.getElementById("showLogin");
 const forgotPasswordLink = document.getElementById("forgotPasswordLink");
 const backToLoginBtn = document.getElementById("backToLogin");
+
+/* =========================================================
+   ERROR FORMATTER
+   ========================================================= */
+
+function formatFirebaseError(err) {
+  if (!err) return "An unexpected error occurred.";
+  const code = err.code || "";
+  switch (code) {
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+    case "auth/user-not-found":
+      return "Invalid email or password. Please check your credentials.";
+    case "auth/email-already-in-use":
+      return "An account with this email already exists. Please sign in.";
+    case "auth/weak-password":
+      return "Password should be at least 8 characters long.";
+    case "auth/invalid-email":
+      return "Please enter a valid email address.";
+    case "auth/too-many-requests":
+      return "Access temporarily blocked due to repeated failed attempts. Please try again later.";
+    case "auth/network-request-failed":
+      return "Network connection issue. Check your internet connection.";
+    default:
+      return err.message ? err.message.replace(/^Firebase:\s*/, "") : "Operation failed.";
+  }
+}
 
 /* =========================================================
    CARD SWITCHING & URL HASH ROUTING
@@ -78,7 +106,6 @@ function showReset() {
     history.replaceState(null, "", "#reset");
   }
 
-  // Pre-fill reset email with whatever was typed in login email
   const loginEmailInput = document.getElementById("loginEmail");
   const resetEmailInput = document.getElementById("resetEmail");
   if (loginEmailInput && resetEmailInput && loginEmailInput.value.trim() && !resetEmailInput.value.trim()) {
@@ -137,8 +164,22 @@ function setBtnLoading(btn, textElem, spinnerElem, isLoading, defaultText) {
   }
 }
 
-function getRoleDisplayName(role) {
-  return role === "associate" ? "Associate (Security Engineer)" : "User (Standard Analyst)";
+function checkFirebaseInit(msgElement) {
+  if (typeof window.isFirebaseConfigured === "function" && !window.isFirebaseConfigured()) {
+    showMessage(
+      msgElement,
+      "Firebase configuration missing. Please update FIREBASE_CONFIG in firebase-config.js."
+    );
+    return false;
+  }
+  if (!getAuth() || !getDb()) {
+    showMessage(
+      msgElement,
+      "Firebase client not initialized. Check firebase-config.js."
+    );
+    return false;
+  }
+  return true;
 }
 
 /* =========================================================
@@ -146,26 +187,31 @@ function getRoleDisplayName(role) {
    ========================================================= */
 
 async function checkActiveSession() {
-  if (!sb) return;
+  const auth = getAuth();
+  const db = getDb();
+  if (!auth) return;
+
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get("action") === "logout") {
-    await sb.auth.signOut();
+    try {
+      await auth.signOut();
+    } catch (_) {}
     sessionStorage.removeItem("netarmor_profile");
     return;
   }
 
   try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session && session.user) {
-      // User is logged in, find profile
-      const { data: profile } = await sb
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .maybeSingle();
+    const user = await window.netarmorAuthReady();
+    if (user && db) {
+      let role = "user";
+      try {
+        const doc = await db.collection("profiles").doc(user.uid).get();
+        if (doc.exists) {
+          role = String(doc.data().role || "user").toLowerCase();
+        }
+      } catch (_) {}
 
-      const userRole = (profile?.role || "user").toLowerCase();
-      if (userRole === "associate") {
+      if (role === "associate") {
         window.location.replace("admin-dashboard.html");
       } else {
         window.location.replace("dashboard.html");
@@ -184,10 +230,10 @@ loginForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   clearMessages();
 
-  if (!sb) {
-    showMessage(loginMessage, "Supabase client not initialized. Check supabase-config.js.");
-    return;
-  }
+  if (!checkFirebaseInit(loginMessage)) return;
+
+  const auth = getAuth();
+  const db = getDb();
 
   const roleElem = document.getElementById("loginRole");
   const emailElem = document.getElementById("loginEmail");
@@ -212,50 +258,38 @@ loginForm?.addEventListener("submit", async (event) => {
   setBtnLoading(loginBtn, loginBtnText, loginSpinner, true, "Login");
 
   try {
-    // 1. Sign in with Supabase Auth
-    const { data: authData, error: authError } = await sb.auth.signInWithPassword({
-      email,
-      password
-    });
+    // 1. Sign in with Firebase Auth
+    const userCredential = await auth.signInWithEmailAndPassword(email, password);
+    const user = userCredential.user;
 
-    if (authError) throw new Error(authError.message);
-    if (!authData?.user) throw new Error("Authentication succeeded but no user data was returned.");
+    // 2. Fetch User Profile from Firestore
+    let profile = null;
+    try {
+      const profileDoc = await db.collection("profiles").doc(user.uid).get();
+      if (profileDoc.exists) {
+        profile = profileDoc.data();
+      }
+    } catch (err) {
+      console.warn("Error fetching profile from Firestore:", err);
+    }
 
-    const user = authData.user;
-
-    // 2. Fetch User Profile
-    let { data: profile, error: profileError } = await sb
-      .from("profiles")
-      .select("id, username, full_name, role, email")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    // 3. Self-healing fallback: If profile record is missing, auto-create standard profile
+    // 3. Self-healing fallback: If profile record is missing, auto-create profile doc
     if (!profile) {
-      console.warn("Profile missing for user. Self-healing default profile...");
-      const defaultUsername = user.user_metadata?.username || email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "");
-      const { data: newProfile, error: createError } = await sb
-        .from("profiles")
-        .insert({
-          id: user.id,
-          username: defaultUsername || `user_${user.id.slice(0, 6)}`,
-          email: user.email,
-          full_name: user.user_metadata?.full_name || defaultUsername,
-          role: "user"
-        })
-        .select()
-        .single();
-
-      if (!createError && newProfile) {
-        profile = newProfile;
-      } else {
-        // If insertion blocked by RLS, proceed with in-memory profile
-        profile = {
-          id: user.id,
-          username: defaultUsername,
-          role: "user",
-          email: user.email
-        };
+      console.warn("Profile document missing. Auto-generating default profile...");
+      const defaultUsername = user.displayName || email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "");
+      profile = {
+        id: user.uid,
+        username: defaultUsername || `user_${user.uid.slice(0, 6)}`,
+        email: user.email,
+        full_name: user.displayName || defaultUsername,
+        role: "user",
+        created_at: firebase.firestore.FieldValue.serverTimestamp(),
+        updated_at: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      try {
+        await db.collection("profiles").doc(user.uid).set(profile, { merge: true });
+      } catch (err) {
+        console.warn("Failed to create profile document:", err);
       }
     }
 
@@ -263,16 +297,16 @@ loginForm?.addEventListener("submit", async (event) => {
 
     // 4. Role validation
     if (selectedRole === "associate" && databaseRole !== "associate") {
-      await sb.auth.signOut();
+      await auth.signOut();
       throw new Error("Access Denied: This account is registered as 'Standard User'. Please select 'User (Standard Analyst)' to log in.");
     }
 
-    // Save profile locally for swift retrieval
+    // Save profile locally for rapid UI display
     sessionStorage.setItem("netarmor_profile", JSON.stringify({
-      id: profile.id,
-      username: profile.username,
+      id: user.uid,
+      username: profile.username || user.displayName,
       role: databaseRole,
-      full_name: profile.full_name || "",
+      full_name: profile.full_name || user.displayName || "",
       email: user.email || ""
     }));
 
@@ -288,7 +322,7 @@ loginForm?.addEventListener("submit", async (event) => {
 
   } catch (error) {
     console.error("NetArmor Login Error:", error);
-    showMessage(loginMessage, error.message || "Login failed. Please verify your email and password.");
+    showMessage(loginMessage, formatFirebaseError(error));
   } finally {
     setBtnLoading(loginBtn, loginBtnText, loginSpinner, false, "Login");
   }
@@ -302,10 +336,10 @@ registerForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   clearMessages();
 
-  if (!sb) {
-    showMessage(registerMessage, "Supabase client not initialized.");
-    return;
-  }
+  if (!checkFirebaseInit(registerMessage)) return;
+
+  const auth = getAuth();
+  const db = getDb();
 
   const usernameElem = document.getElementById("regUsername");
   const emailElem = document.getElementById("regEmail");
@@ -336,57 +370,47 @@ registerForm?.addEventListener("submit", async (event) => {
   setBtnLoading(registerBtn, registerBtnText, registerSpinner, true, "Create Account");
 
   try {
-    const { data, error } = await sb.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          username,
-          full_name: username,
-          role: "user"
-        }
-      }
-    });
+    // 1. Create User in Firebase Auth
+    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+    const user = userCredential.user;
 
-    if (error) throw new Error(error.message);
+    // 2. Set Firebase Auth Display Name
+    try {
+      await user.updateProfile({ displayName: username });
+    } catch (_) {}
 
-    // If session was returned immediately (email confirmation disabled in Supabase)
-    if (data?.session && data?.user) {
-      // Ensure profile exists
-      try {
-        await sb.from("profiles").upsert({
-          id: data.user.id,
-          username: username,
-          email: email,
-          role: "user"
-        });
-      } catch (_) {}
+    // 3. Create Profile document in Cloud Firestore
+    const newProfile = {
+      id: user.uid,
+      username: username,
+      email: email,
+      full_name: username,
+      role: "user",
+      created_at: firebase.firestore.FieldValue.serverTimestamp(),
+      updated_at: firebase.firestore.FieldValue.serverTimestamp()
+    };
 
-      sessionStorage.setItem("netarmor_profile", JSON.stringify({
-        id: data.user.id,
-        username: username,
-        role: "user",
-        email: email
-      }));
-
-      showMessage(registerMessage, "Account created successfully! Entering security console...", "success");
-      setTimeout(() => {
-        window.location.replace("dashboard.html");
-      }, 700);
-
-    } else {
-      // Email confirmation enabled in Supabase
-      showMessage(registerMessage, "Account created! A confirmation email has been sent. Please confirm your email, then log in.", "success");
-      setTimeout(() => {
-        showLogin();
-        const loginEmail = document.getElementById("loginEmail");
-        if (loginEmail) loginEmail.value = email;
-      }, 2000);
+    try {
+      await db.collection("profiles").doc(user.uid).set(newProfile);
+    } catch (dbErr) {
+      console.warn("Profile document insertion error:", dbErr);
     }
+
+    sessionStorage.setItem("netarmor_profile", JSON.stringify({
+      id: user.uid,
+      username: username,
+      role: "user",
+      email: email
+    }));
+
+    showMessage(registerMessage, "Account created successfully! Entering security console...", "success");
+    setTimeout(() => {
+      window.location.replace("dashboard.html");
+    }, 700);
 
   } catch (error) {
     console.error("NetArmor Registration Error:", error);
-    showMessage(registerMessage, error.message || "Registration failed. Please try again.");
+    showMessage(registerMessage, formatFirebaseError(error));
   } finally {
     setBtnLoading(registerBtn, registerBtnText, registerSpinner, false, "Create Account");
   }
@@ -400,11 +424,9 @@ resetForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   clearMessages();
 
-  if (!sb) {
-    showMessage(resetMessage, "Supabase client not initialized.");
-    return;
-  }
+  if (!checkFirebaseInit(resetMessage)) return;
 
+  const auth = getAuth();
   const emailElem = document.getElementById("resetEmail");
   const email = emailElem ? emailElem.value.trim() : "";
 
@@ -417,13 +439,7 @@ resetForm?.addEventListener("submit", async (event) => {
   setBtnLoading(resetBtn, resetBtnText, resetSpinner, true, "Send Reset Link");
 
   try {
-    const redirectUrl = `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}update-password.html`;
-
-    const { error } = await sb.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl
-    });
-
-    if (error) throw new Error(error.message);
+    await auth.sendPasswordResetEmail(email);
 
     showMessage(
       resetMessage,
@@ -433,7 +449,7 @@ resetForm?.addEventListener("submit", async (event) => {
 
   } catch (error) {
     console.error("NetArmor Password Reset Error:", error);
-    showMessage(resetMessage, error.message || "Failed to send reset link. Please check the email address.");
+    showMessage(resetMessage, formatFirebaseError(error));
   } finally {
     setBtnLoading(resetBtn, resetBtnText, resetSpinner, false, "Send Reset Link");
   }

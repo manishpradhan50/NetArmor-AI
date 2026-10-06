@@ -3,163 +3,1108 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>NetArmor AI — User Security Console</title>
+  <title>NetArmor AI — User Security Console & Incident Desk</title>
   <link rel="icon" type="image/png" href="images/logo.png">
   <link rel="stylesheet" href="dashboard.css">
 
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-config.js"></script>
+  <!-- Google Firebase Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
 </head>
 
 <body>
   <div class="grid"></div>
 
-  <!-- NAVBAR -->
-  <header>
-    <a class="brand" href="index.html">
-      <img src="images/logo.png" alt="NetArmor Logo" style="width: 24px; height: 24px; object-fit: contain;">
-      <span>NetArmor <b>AI</b></span>
-    </a>
-
-    <nav>
-      <span class="badge safe" id="userRoleBadge" style="display: none;">Standard Analyst</span>
-      <a href="detect.html" class="scan">
-        Launch Scanner
-      </a>
-      <button id="logout">
-        Logout
-      </button>
-    </nav>
-  </header>
-
-  <main>
-    <!-- WELCOME -->
-    <section class="welcome">
-      <div>
-        <small>USER SECURITY CONSOLE</small>
-        <h1>
-          Welcome back,
-          <span id="name">Analyst</span>
-        </h1>
-        <p id="userSubtitle">
-          Review your security activity, historical threat detections, and launch a new threat diagnosis.
-        </p>
-        <p id="userEmail" style="font-size: 0.82rem; color: var(--muted); margin-top: 5px;"></p>
+  <div class="app-shell">
+    <!-- =========================================================
+         SIDEBAR NAVIGATION
+         ========================================================= -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a class="brand" href="index.html">
+          <img src="images/logo.png" alt="NetArmor Logo" style="width: 26px; height: 26px; object-fit: contain;">
+          <span>NetArmor <b>AI</b></span>
+        </a>
+        <span class="brand-badge">v2.4 PRO</span>
       </div>
 
-      <a class="primary" href="detect.html">
-        ＋ New Scan
-      </a>
-    </section>
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Core Console</div>
+        <button class="nav-item active" data-tab="overview">
+          <span class="icon">📊</span>
+          <span>Overview</span>
+        </button>
 
-    <!-- STATISTICS -->
-    <section class="stats">
-      <div>
-        <label>Total Scans</label>
-        <strong id="total">0</strong>
-        <em>All personal analyses</em>
-      </div>
+        <button class="nav-item" data-tab="threats">
+          <span class="icon">🔍</span>
+          <span>Threat Diagnostics</span>
+          <span class="counter-badge" id="sidebarScanCount">0</span>
+        </button>
 
-      <div>
-        <label>Threats Detected</label>
-        <strong id="threats" style="color: var(--red);">0</strong>
-        <em>High-risk alerts</em>
-      </div>
+        <button class="nav-item" data-tab="security">
+          <span class="icon">🛡️</span>
+          <span>Security Center</span>
+        </button>
 
-      <div>
-        <label>Safe Results</label>
-        <strong id="safe" style="color: var(--green);">0</strong>
-        <em>Passed inspection</em>
-      </div>
+        <div class="nav-section-label">Incident &amp; Support</div>
+        <button class="nav-item" data-tab="complaints">
+          <span class="icon">🚨</span>
+          <span>Cyber Complaints</span>
+          <span class="counter-badge threat-alert" id="sidebarComplaintCount">0</span>
+        </button>
 
-      <div>
-        <label>Threat Rate</label>
-        <strong id="rate">0%</strong>
-        <em>Ratio flagged</em>
-      </div>
-    </section>
+        <button class="nav-item" data-tab="fraud">
+          <span class="icon">⚠️</span>
+          <span>Report Fraud</span>
+        </button>
 
-    <!-- CONTENT -->
-    <section class="cols">
-      <!-- SCAN HISTORY -->
-      <article class="panel">
-        <div class="head">
-          <div>
-            <small>TELEMETRY FEED</small>
-            <h2>Your Threat Scan History</h2>
+        <button class="nav-item" data-tab="tickets">
+          <span class="icon">🎫</span>
+          <span>Support Tickets</span>
+          <span class="counter-badge" id="sidebarTicketCount">0</span>
+        </button>
+
+        <div class="nav-section-label">Assistance &amp; Account</div>
+        <button class="nav-item" data-tab="help">
+          <span class="icon">❓</span>
+          <span>Help &amp; FAQs</span>
+        </button>
+
+        <button class="nav-item" data-tab="feedback">
+          <span class="icon">⭐</span>
+          <span>Feedback</span>
+        </button>
+
+        <button class="nav-item" data-tab="settings">
+          <span class="icon">⚙️</span>
+          <span>Account Settings</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-card">
+          <div class="user-avatar" id="userAvatarText">U</div>
+          <div class="user-details">
+            <div class="user-name" id="sidebarUserName">Loading...</div>
+            <div class="user-role">
+              <span class="status-indicator-dot"></span>
+              <span id="sidebarUserRole">Standard Analyst</span>
+            </div>
           </div>
-          <button id="refresh">
-            ↻ Refresh
+          <button class="icon-button btn-sm" id="sidebarLogoutBtn" title="Logout" style="width: 30px; height: 30px;">
+            ⏻
           </button>
         </div>
+      </div>
+    </aside>
 
-        <div class="table">
-          <table>
-            <thead>
-              <tr>
-                <th>Vector</th>
-                <th>Target Inspected</th>
-                <th>Diagnosis</th>
-                <th>Risk Index</th>
-                <th>Timestamp</th>
-              </tr>
-            </thead>
-            <tbody id="history">
-              <tr>
-                <td colspan="5" class="empty">
-                  Loading security history...
-                </td>
-              </tr>
-            </tbody>
-          </table>
+    <!-- =========================================================
+         MAIN CONTENT AREA
+         ========================================================= -->
+    <div class="main-wrapper">
+      <!-- TOP NAVIGATION BAR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">☰</button>
+          <div class="breadcrumb-view">
+            <small>Console</small> / <span id="currentViewTitle">Overview</span>
+          </div>
         </div>
-      </article>
 
-      <!-- QUICK ACTIONS -->
-      <aside class="panel">
-        <small>DIAGNOSTIC SUITE</small>
-        <h2>Security Modules</h2>
+        <div class="topbar-right">
+          <a href="detect.html" class="btn btn-primary btn-sm">
+            ＋ Launch Scanner
+          </a>
 
-        <a href="detect.html?tab=url">
-          🌐
-          <span>
-            <b>URL Structural Scanner</b>
-            <small>Inspect links for typo-squatting &amp; scams</small>
-          </span>
-          →
-        </a>
+          <button class="btn btn-secondary btn-sm" id="quickComplaintBtn">
+            🚨 Raise Complaint
+          </button>
 
-        <a href="detect.html?tab=email">
-          ✉️
-          <span>
-            <b>Email NLP Analyzer</b>
-            <small>Classify phishing phrasing &amp; urgency</small>
-          </span>
-          →
-        </a>
+          <!-- Notifications Bell -->
+          <div class="notification-btn-wrapper">
+            <button class="icon-button" id="notifBellBtn" aria-label="Notifications">
+              🔔
+              <span class="notif-badge-pill" id="notifCountPill" style="display: none;">0</span>
+            </button>
 
-        <a href="detect.html?tab=message">
-          💬
-          <span>
-            <b>SMS Smishing Scanner</b>
-            <small>Scan mobile text for OTP &amp; banking lures</small>
-          </span>
-          →
-        </a>
+            <!-- Notifications Drawer -->
+            <div class="notification-popover" id="notifPopover">
+              <div class="notif-header">
+                <h4>In-App Notifications</h4>
+                <button class="btn btn-secondary btn-sm" id="markAllNotifsReadBtn">Mark Read</button>
+              </div>
+              <div class="notif-list" id="notifList">
+                <div class="empty">No unread notifications</div>
+              </div>
+            </div>
+          </div>
 
-        <a href="detect.html?tab=document">
-          📄
-          <span>
-            <b>PDF Document Auditor</b>
-            <small>Detect malicious embedded JS &amp; hyperlinks</small>
-          </span>
-          →
-        </a>
-      </aside>
-    </section>
-  </main>
+          <button class="btn btn-secondary btn-sm" id="logout">
+            Logout
+          </button>
+        </div>
+      </header>
 
+      <!-- CONTENT PANES -->
+      <main class="content-container">
+
+        <!-- =======================================================
+             TAB 1: OVERVIEW
+             ======================================================= -->
+        <section class="tab-pane active" id="pane-overview">
+          <!-- WELCOME BANNER -->
+          <div class="welcome-banner">
+            <div class="welcome-info">
+              <small>ENTERPRISE SECURITY CONSOLE</small>
+              <h1>Welcome back, <span id="name">Analyst</span></h1>
+              <p id="userSubtitle">
+                Your AI-powered threat telemetry hub. Monitor real-time zero-day links, file cyber crime complaints, track open support tickets, and harden account security.
+              </p>
+              <div id="userEmail" style="font-size: 0.78rem; color: var(--muted); margin-top: 6px;"></div>
+            </div>
+            <div class="banner-actions">
+              <a href="detect.html" class="btn btn-primary">
+                🔍 New Diagnostic Scan
+              </a>
+              <button class="btn btn-secondary" onclick="switchTab('complaints')">
+                🚨 Cyber Complaints
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI STATS CARDS -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Total Diagnostics</span>
+                <span class="kpi-icon-pill">🌐</span>
+              </div>
+              <h3 class="kpi-value" id="total">0</h3>
+              <p class="kpi-subtext">All inspected vectors</p>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Threats Blocked</span>
+                <span class="kpi-icon-pill" style="color: var(--red);">🚨</span>
+              </div>
+              <h3 class="kpi-value" id="threats" style="color: var(--red);">0</h3>
+              <p class="kpi-subtext">High-risk flagged items</p>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Safe Verified</span>
+                <span class="kpi-icon-pill" style="color: var(--green);">🛡️</span>
+              </div>
+              <h3 class="kpi-value" id="safe" style="color: var(--green);">0</h3>
+              <p class="kpi-subtext">Passed heuristics</p>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Threat Ratio</span>
+                <span class="kpi-icon-pill">⚖️</span>
+              </div>
+              <h3 class="kpi-value" id="rate">0%</h3>
+              <p class="kpi-subtext">Vulnerability index</p>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Active Complaints</span>
+                <span class="kpi-icon-pill" style="color: var(--cyan);">📁</span>
+              </div>
+              <h3 class="kpi-value" id="kpiComplaints" style="color: var(--cyan);">0</h3>
+              <p class="kpi-subtext">Filed incident reports</p>
+            </div>
+          </div>
+
+          <!-- QUICK ACTIONS & RECENT SCAN GRID -->
+          <div style="display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr); gap: 20px;">
+            <!-- RECENT SCANS TABLE -->
+            <div class="panel">
+              <div class="panel-header-flex">
+                <div>
+                  <small style="color: var(--green); font-size: 0.68rem; font-weight: 800; letter-spacing: 1px;">TELEMETRY</small>
+                  <h3 style="margin: 3px 0 0; font-size: 1.15rem;">Recent Security Scans</h3>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="refresh">↻ Refresh</button>
+              </div>
+
+              <div class="table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Vector</th>
+                      <th>Target</th>
+                      <th>Result</th>
+                      <th>Risk</th>
+                      <th>Time</th>
+                    </tr>
+                  </thead>
+                  <tbody id="history">
+                    <tr><td colspan="5" class="empty">Loading telemetry logs...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div style="margin-top: 14px; text-align: right;">
+                <button class="btn btn-secondary btn-sm" onclick="switchTab('threats')">View Full History →</button>
+              </div>
+            </div>
+
+            <!-- RIGHT COLUMN: QUICK INCIDENT TRACKER & RECENT ACTIVITY -->
+            <div>
+              <!-- TRACK COMPLAINT QUICK CARD -->
+              <div class="tracker-card">
+                <small style="color: var(--cyan); font-size: 0.68rem; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase;">TRACK INCIDENT</small>
+                <h4 style="margin: 4px 0 10px; font-size: 1.05rem;">Track Cyber Complaint</h4>
+                <p style="font-size: 0.78rem; color: var(--muted); margin: 0 0 12px;">Enter your unique Complaint ID (e.g. NET-CMP-2026-XXXX) to inspect progress:</p>
+                <form id="quickTrackForm" style="display: flex; gap: 8px;">
+                  <input type="text" id="quickTrackInput" class="form-input" placeholder="NET-CMP-..." style="padding: 8px 12px; font-size: 0.8rem;" required>
+                  <button type="submit" class="btn btn-primary btn-sm">Track</button>
+                </form>
+              </div>
+
+              <!-- RECENT AUDIT ACTIVITY -->
+              <div class="panel" style="margin-bottom: 0;">
+                <div class="panel-header-flex">
+                  <h4 style="margin: 0; font-size: 1rem;">Live Security Stream</h4>
+                  <span class="badge safe">Live Feed</span>
+                </div>
+                <div class="activity-stream" id="recentActivityStream">
+                  <div class="empty" style="padding: 16px !important;">Monitoring live security events...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =======================================================
+             TAB 2: THREAT DIAGNOSTICS (FULL TELEMETRY)
+             ======================================================= -->
+        <section class="tab-pane" id="pane-threats">
+          <div class="section-head">
+            <div>
+              <small>DEEP TELEMETRY LOGS</small>
+              <h2>Diagnostic Threat History</h2>
+            </div>
+            <a href="detect.html" class="btn btn-primary btn-sm">＋ Launch New Diagnostic</a>
+          </div>
+
+          <div class="panel">
+            <div class="filter-bar">
+              <div class="search-input-box">
+                <span class="icon">🔍</span>
+                <input type="text" id="scanSearchInput" placeholder="Search inspected targets, URLs, or diagnostics...">
+              </div>
+
+              <select class="filter-select" id="scanVectorFilter">
+                <option value="all">All Vectors</option>
+                <option value="url">🌐 URLs</option>
+                <option value="email">✉️ Emails</option>
+                <option value="message">💬 SMS / Messages</option>
+                <option value="document">📄 PDF Documents</option>
+              </select>
+
+              <select class="filter-select" id="scanResultFilter">
+                <option value="all">All Results</option>
+                <option value="Threat">🚨 Threats Only</option>
+                <option value="Safe">🛡️ Safe Only</option>
+              </select>
+
+              <button class="btn btn-secondary btn-sm" id="refreshFullScansBtn">↻ Refresh</button>
+            </div>
+
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Scan Vector</th>
+                    <th>Target Inspected</th>
+                    <th>Diagnosis</th>
+                    <th>Risk Index</th>
+                    <th>Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody id="fullScansTable">
+                  <tr><td colspan="5" class="empty">Loading telemetry logs...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =======================================================
+             TAB 3: CYBER COMPLAINTS
+             ======================================================= -->
+        <section class="tab-pane" id="pane-complaints">
+          <div class="section-head">
+            <div>
+              <small>INCIDENT RESPONSE DESK</small>
+              <h2>Cyber Crime &amp; Fraud Complaints</h2>
+            </div>
+            <button class="btn btn-primary btn-sm" id="openComplaintModalBtn">
+              🚨 File New Cyber Complaint
+            </button>
+          </div>
+
+          <!-- COMPLAINT TRACKER VISUALIZER -->
+          <div class="tracker-card" id="complaintTrackerBox">
+            <div class="panel-header-flex">
+              <div>
+                <small style="color: var(--cyan); font-weight: 800; letter-spacing: 1px;">INCIDENT TRACKER</small>
+                <h3 style="margin: 4px 0 0; font-size: 1.15rem;">Live Incident Status Tracker</h3>
+              </div>
+              <span class="badge submitted" id="trackerStatusBadge">Ready to Track</span>
+            </div>
+
+            <div class="tracker-search-box">
+              <input type="text" id="complaintSearchIdInput" class="form-input" placeholder="Enter Complaint ID (e.g. NET-CMP-2026-1042)">
+              <button class="btn btn-primary" id="trackComplaintBtn">Inspect Status</button>
+            </div>
+
+            <div id="trackerDetailsArea" style="display: none; margin-top: 16px;">
+              <div style="background: rgba(255,255,255,0.03); padding: 14px 18px; border-radius: 12px; border: 1px solid var(--line-subtle); margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                  <div>
+                    <strong id="trackerComplaintTitle" style="font-size: 1rem; color: #fff;">—</strong>
+                    <div id="trackerComplaintMeta" style="font-size: 0.76rem; color: var(--muted); margin-top: 4px;">—</div>
+                  </div>
+                  <div id="trackerComplaintPriority" class="badge medium">—</div>
+                </div>
+              </div>
+
+              <div class="tracker-steps">
+                <div class="tracker-step" id="step-1">
+                  <div class="tracker-dot">1</div>
+                  <div class="tracker-step-title">Submitted</div>
+                  <div class="tracker-step-desc">Incident logged</div>
+                </div>
+                <div class="tracker-step" id="step-2">
+                  <div class="tracker-dot">2</div>
+                  <div class="tracker-step-title">Under Review</div>
+                  <div class="tracker-step-desc">Initial triage</div>
+                </div>
+                <div class="tracker-step" id="step-3">
+                  <div class="tracker-dot">3</div>
+                  <div class="tracker-step-title">In Progress</div>
+                  <div class="tracker-step-desc">Forensics &amp; heuristics</div>
+                </div>
+                <div class="tracker-step" id="step-4">
+                  <div class="tracker-dot">4</div>
+                  <div class="tracker-step-title">Resolved</div>
+                  <div class="tracker-step-desc">Advisory provided</div>
+                </div>
+                <div class="tracker-step" id="step-5">
+                  <div class="tracker-dot">5</div>
+                  <div class="tracker-step-title">Closed</div>
+                  <div class="tracker-step-desc">Case archived</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- COMPLAINTS HISTORY TABLE -->
+          <div class="panel">
+            <div class="panel-header-flex">
+              <div>
+                <small style="color: var(--green); font-size: 0.68rem; font-weight: 800; letter-spacing: 1px;">HISTORY</small>
+                <h3 style="margin: 3px 0 0; font-size: 1.15rem;">Your Filed Complaints</h3>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <select class="filter-select" id="complaintStatusFilter">
+                  <option value="all">All Statuses</option>
+                  <option value="Submitted">Submitted</option>
+                  <option value="Under Review">Under Review</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Resolved">Resolved</option>
+                  <option value="Closed">Closed</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" id="refreshComplaintsBtn">↻ Refresh</button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tracking ID</th>
+                    <th>Category</th>
+                    <th>Incident Title</th>
+                    <th>Incident Date</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="complaintsTable">
+                  <tr><td colspan="7" class="empty">No cyber complaints recorded yet.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =======================================================
+             TAB 4: REPORT FRAUD & SUSPICIOUS ACTIVITY
+             ======================================================= -->
+        <section class="tab-pane" id="pane-fraud">
+          <div class="section-head">
+            <div>
+              <small>RAPID THREAT INTAKE</small>
+              <h2>Report Fraud or Suspicious Activity</h2>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); gap: 20px;">
+            <div class="panel">
+              <p style="color: var(--muted-light); font-size: 0.85rem; margin-top: 0;">
+                Quickly report deceptive phishing URLs, fraudulent UPI IDs, SMS scam numbers, or suspicious links. Our heuristic pipeline will ingest the report into the threat telemetry database.
+              </p>
+
+              <form id="reportFraudForm">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Fraud Vector / Category</label>
+                    <select class="form-select" id="fraudCategory" required>
+                      <option value="Phishing URL / Fake Website">🌐 Phishing URL / Fake Website</option>
+                      <option value="SMS / WhatsApp Smishing Scam">💬 SMS / WhatsApp Smishing Scam</option>
+                      <option value="Financial / UPI / Payment Fraud">💳 Financial / UPI / Payment Fraud</option>
+                      <option value="Social Engineering / Impersonation">🎭 Social Engineering / Impersonation</option>
+                      <option value="Malicious APK / Trojan / Document">📄 Malicious APK / Trojan / Document</option>
+                      <option value="Fake Job / Lottery Scam">🎯 Fake Job / Lottery Scam</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Suspect Target (URL / Phone / Email / UPI)</label>
+                    <input type="text" class="form-input" id="fraudTarget" placeholder="e.g. http://secure-login-bank.xyz or +91-9876543210" required>
+                  </div>
+
+                  <div class="form-group full-width">
+                    <label class="form-label">Brief Description of the Incident / Lure</label>
+                    <textarea class="form-textarea" id="fraudDescription" placeholder="Explain the suspicious message, urgent threat pretext, or how you were contacted..." required></textarea>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 10px;">
+                  <button type="submit" class="btn btn-primary">
+                    ⚠️ Submit Threat Report
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="testFraudInScannerBtn">
+                    🔍 Test in NetArmor Scanner Hub
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- ADVISORY CARD -->
+            <div class="panel">
+              <small style="color: var(--amber); font-weight: 800; letter-spacing: 1px;">SECURITY ADVISORY</small>
+              <h3 style="margin: 4px 0 12px; font-size: 1.05rem;">Critical Safeguards</h3>
+              <ul style="padding-left: 20px; font-size: 0.82rem; color: var(--muted-light); line-height: 1.7; margin: 0 0 16px;">
+                <li><strong>Never share OTPs</strong> or remote-access codes (AnyDesk, TeamViewer) with unverified callers.</li>
+                <li><strong>Inspect Domain Spelling:</strong> Phishing attacks mimic bank names with subtle typos (e.g. <code>sb1.co.in</code>).</li>
+                <li><strong>Report Financial Frauds within 2 Hours</strong> to helpline <code>1930</code> to freeze illicit fund transfers.</li>
+              </ul>
+              <a href="privacy-policy.html" style="color: var(--green); font-size: 0.8rem; text-decoration: underline;">
+                Read Privacy &amp; Data Handling Policy →
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <!-- =======================================================
+             TAB 5: SUPPORT TICKETS
+             ======================================================= -->
+        <section class="tab-pane" id="pane-tickets">
+          <div class="section-head">
+            <div>
+              <small>CUSTOMER CARE &amp; ASSISTANCE</small>
+              <h2>Support Ticket System</h2>
+            </div>
+            <button class="btn btn-primary btn-sm" id="openTicketModalBtn">
+              🎫 Open Support Ticket
+            </button>
+          </div>
+
+          <div class="panel">
+            <div class="filter-bar">
+              <div class="search-input-box">
+                <span class="icon">🔍</span>
+                <input type="text" id="ticketSearchInput" placeholder="Search ticket subject, ticket ID, or issue...">
+              </div>
+
+              <select class="filter-select" id="ticketCategoryFilter">
+                <option value="all">All Categories</option>
+                <option value="Threat Scanner">Threat Scanner</option>
+                <option value="Account & Security">Account &amp; Security</option>
+                <option value="False Positive Report">False Positive Report</option>
+                <option value="Browser Extension">Browser Extension</option>
+                <option value="Other">Other</option>
+              </select>
+
+              <select class="filter-select" id="ticketStatusFilter">
+                <option value="all">All Statuses</option>
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+                <option value="Closed">Closed</option>
+              </select>
+
+              <button class="btn btn-secondary btn-sm" id="refreshTicketsBtn">↻ Refresh</button>
+            </div>
+
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Ticket ID</th>
+                    <th>Category</th>
+                    <th>Subject</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Created At</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ticketsTable">
+                  <tr><td colspan="7" class="empty">No support tickets found.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =======================================================
+             TAB 6: SECURITY CENTER
+             ======================================================= -->
+        <section class="tab-pane" id="pane-security">
+          <div class="section-head">
+            <div>
+              <small>POSTURE &amp; COMPLIANCE</small>
+              <h2>Security Center</h2>
+            </div>
+            <a href="update-password.html" class="btn btn-secondary btn-sm">🔒 Update Password</a>
+          </div>
+
+          <div style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1.2fr); gap: 20px;">
+            <!-- SECURITY HEALTH METER -->
+            <div class="panel">
+              <small style="color: var(--green); font-weight: 800; letter-spacing: 1.2px;">SECURITY POSTURE</small>
+              <h3 style="margin: 4px 0 16px; font-size: 1.25rem;">Account Threat Resistance</h3>
+
+              <div style="display: flex; align-items: center; gap: 24px; margin-bottom: 24px; flex-wrap: wrap;">
+                <div style="width: 110px; height: 110px; border-radius: 50%; border: 6px solid var(--green); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 25px var(--green-glow);">
+                  <strong style="font-size: 1.8rem; line-height: 1;" id="securityScoreVal">94%</strong>
+                  <span style="font-size: 0.65rem; color: var(--green); font-weight: 800; margin-top: 3px;">GRADE A</span>
+                </div>
+                <div>
+                  <h4 style="margin: 0 0 6px; font-size: 1.05rem;">Shield Protection Active</h4>
+                  <p style="margin: 0; color: var(--muted); font-size: 0.8rem; line-height: 1.5; max-width: 320px;">
+                    Your account has active MFA readiness, encrypted Firestore telemetry, and regular heuristic scans logged.
+                  </p>
+                </div>
+              </div>
+
+              <!-- VECTOR VULNERABILITY SUMMARY -->
+              <h4 style="font-size: 0.88rem; margin: 16px 0 10px;">Inspection Breakdown</h4>
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 10px; border: 1px solid var(--line-subtle);">
+                  <div style="font-size: 0.72rem; color: var(--muted);">URL Structural Risk</div>
+                  <strong style="font-size: 1.1rem; color: var(--green);" id="secUrlRisk">Low</strong>
+                </div>
+                <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 10px; border: 1px solid var(--line-subtle);">
+                  <div style="font-size: 0.72rem; color: var(--muted);">Email NLP Phishing</div>
+                  <strong style="font-size: 1.1rem; color: var(--green);" id="secEmailRisk">Protected</strong>
+                </div>
+                <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 10px; border: 1px solid var(--line-subtle);">
+                  <div style="font-size: 0.72rem; color: var(--muted);">SMS Smishing Defense</div>
+                  <strong style="font-size: 1.1rem; color: var(--green);" id="secSmsRisk">Active</strong>
+                </div>
+                <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 10px; border: 1px solid var(--line-subtle);">
+                  <div style="font-size: 0.72rem; color: var(--muted);">PDF Document Shield</div>
+                  <strong style="font-size: 1.1rem; color: var(--green);" id="secPdfRisk">Audited</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECURITY HARDENING CHECKLIST -->
+            <div class="panel">
+              <small style="color: var(--cyan); font-weight: 800; letter-spacing: 1px;">RECOMMENDED ACTIONS</small>
+              <h3 style="margin: 4px 0 16px; font-size: 1.25rem;">Cyber Hardening Checklist</h3>
+
+              <div class="security-checklist">
+                <div class="checklist-item">
+                  <input type="checkbox" class="checklist-checkbox" checked id="chk1">
+                  <div class="checklist-content">
+                    <h4>Use Strong Unique Passwords</h4>
+                    <p>Ensure your NetArmor account password has at least 8 characters with numbers &amp; symbols.</p>
+                  </div>
+                </div>
+
+                <div class="checklist-item">
+                  <input type="checkbox" class="checklist-checkbox" checked id="chk2">
+                  <div class="checklist-content">
+                    <h4>Install Chrome Extension (Manifest V3)</h4>
+                    <p>Keep the NetArmor AI browser extension active for live zero-day page evaluation.</p>
+                  </div>
+                </div>
+
+                <div class="checklist-item">
+                  <input type="checkbox" class="checklist-checkbox" checked id="chk3">
+                  <div class="checklist-content">
+                    <h4>Review High-Risk Telemetry</h4>
+                    <p>Regularly inspect flagged items in your Threat Diagnostics tab to isolate scam sources.</p>
+                  </div>
+                </div>
+
+                <div class="checklist-item">
+                  <input type="checkbox" class="checklist-checkbox" id="chk4">
+                  <div class="checklist-content">
+                    <h4>Enable Two-Factor Authentication (2FA)</h4>
+                    <p>Set up an authenticator app on your linked email provider to prevent credential compromise.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =======================================================
+             TAB 7: HELP CENTER & FAQS
+             ======================================================= -->
+        <section class="tab-pane" id="pane-help">
+          <div class="section-head">
+            <div>
+              <small>CUSTOMER CARE &amp; 24/7 HELPLINES</small>
+              <h2>Help Center &amp; Cyber Guidelines</h2>
+            </div>
+            <a href="detect.html" class="btn btn-primary btn-sm">💬 Talk with ArmorBot AI</a>
+          </div>
+
+          <!-- HELPLINE CARDS -->
+          <div class="helpline-grid">
+            <div class="helpline-card">
+              <div class="helpline-top">
+                <div class="helpline-icon">📞</div>
+                <h4 class="helpline-title">National Cyber Crime Helpline</h4>
+              </div>
+              <div class="helpline-number">1930</div>
+              <p class="helpline-desc">Toll-free 24/7 immediate assistance for financial and cyber fraud across India.</p>
+            </div>
+
+            <div class="helpline-card">
+              <div class="helpline-top">
+                <div class="helpline-icon">🌐</div>
+                <h4 class="helpline-title">Official Portal (MHA)</h4>
+              </div>
+              <div class="helpline-number" style="font-size: 1rem; margin: 10px 0;">cybercrime.gov.in</div>
+              <p class="helpline-desc">Official Government portal to lodge formal cyber crime FIRs and register forensic complaints.</p>
+            </div>
+
+            <div class="helpline-card">
+              <div class="helpline-top">
+                <div class="helpline-icon">🛡️</div>
+                <h4 class="helpline-title">NetArmor AI Incident Desk</h4>
+              </div>
+              <div class="helpline-number" style="font-size: 1rem; margin: 10px 0;">support@netarmor.ai</div>
+              <p class="helpline-desc">Our dedicated engineering team available for model analysis, heuristic queries, and system assistance.</p>
+            </div>
+          </div>
+
+          <!-- FAQ ACCORDION -->
+          <div class="panel">
+            <div class="panel-header-flex">
+              <div>
+                <small style="color: var(--green); font-size: 0.68rem; font-weight: 800; letter-spacing: 1px;">KNOWLEDGE BASE</small>
+                <h3 style="margin: 3px 0 0; font-size: 1.15rem;">Frequently Asked Questions</h3>
+              </div>
+              <div class="search-input-box" style="max-width: 280px;">
+                <span class="icon">🔍</span>
+                <input type="text" id="faqSearchInput" placeholder="Filter questions...">
+              </div>
+            </div>
+
+            <div class="faq-accordion" id="faqAccordion">
+              <div class="faq-item open">
+                <div class="faq-question">
+                  <span>How does NetArmor AI detect zero-day phishing websites?</span>
+                  <span class="faq-toggle-icon">▼</span>
+                </div>
+                <div class="faq-answer">
+                  NetArmor AI employs a multi-vector heuristic and ML feature extractor. It inspects structural anomalies such as embedded IP addresses, suspicious '@' symbols, deep multi-level subdomains, typo-squatted brand names, and insecure protocols to accurately predict phishing threats even before traditional blocklists list them.
+                </div>
+              </div>
+
+              <div class="faq-item">
+                <div class="faq-question">
+                  <span>What steps should I take immediately after a financial cyber fraud?</span>
+                  <span class="faq-toggle-icon">▼</span>
+                </div>
+                <div class="faq-answer">
+                  Act within the <strong>"Golden Hour" (first 2 hours)</strong>:
+                  1. Call the National Cyber Crime Helpline at <strong>1930</strong> immediately to freeze recipient accounts.
+                  2. Lodge a formal report at <strong>cybercrime.gov.in</strong>.
+                  3. Contact your bank's emergency desk to block debit/credit cards and net banking access.
+                  4. Preserve digital evidence: transaction UTR numbers, SMS messages, call logs, and screenshots.
+                </div>
+              </div>
+
+              <div class="faq-item">
+                <div class="faq-question">
+                  <span>How does the Cyber Complaint tracking system work?</span>
+                  <span class="faq-toggle-icon">▼</span>
+                </div>
+                <div class="faq-answer">
+                  When you submit a complaint in NetArmor AI, the system automatically assigns a unique tracking ID (e.g. <code>NET-CMP-2026-XXXX</code>) and stores the incident securely in Cloud Firestore. You can inspect its status at any time across 5 milestones: <em>Submitted</em>, <em>Under Review</em>, <em>In Progress</em>, <em>Resolved</em>, and <em>Closed</em>.
+                </div>
+              </div>
+
+              <div class="faq-item">
+                <div class="faq-question">
+                  <span>Can I upload evidence files (screenshots, PDFs) with my complaint?</span>
+                  <span class="faq-toggle-icon">▼</span>
+                </div>
+                <div class="faq-answer">
+                  Yes! The NetArmor AI complaint portal supports file attachments up to 10MB (PNG, JPG, PDF, TXT, DOCX). The files are securely processed and linked to your incident report.
+                </div>
+              </div>
+
+              <div class="faq-item">
+                <div class="faq-question">
+                  <span>How does the Email NLP Analyzer identify phishing emails?</span>
+                  <span class="faq-toggle-icon">▼</span>
+                </div>
+                <div class="faq-answer">
+                  The Email Analyzer utilizes TF-IDF Vectorization and an XGBoost machine learning classifier trained on cybersecurity datasets. It evaluates psychological urgency lures, artificial deadlines, fake credential-verification demands, and fraudulent phrasing.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =======================================================
+             TAB 8: FEEDBACK
+             ======================================================= -->
+        <section class="tab-pane" id="pane-feedback">
+          <div class="section-head">
+            <div>
+              <small>USER EXPERIENCE &amp; PRODUCT REFINEMENT</small>
+              <h2>Share Your Feedback</h2>
+            </div>
+          </div>
+
+          <div style="max-width: 650px;">
+            <div class="panel">
+              <p style="color: var(--muted-light); font-size: 0.85rem; margin-top: 0;">
+                Your feedback directly influences model accuracy improvements and dashboard capabilities. Let us know how NetArmor AI is performing for your security workflows.
+              </p>
+
+              <form id="feedbackForm">
+                <div class="form-group">
+                  <label class="form-label">Overall System Satisfaction</label>
+                  <div class="star-rating-box" id="starRating">
+                    <button type="button" class="star-btn" data-value="1">★</button>
+                    <button type="button" class="star-btn" data-value="2">★</button>
+                    <button type="button" class="star-btn" data-value="3">★</button>
+                    <button type="button" class="star-btn" data-value="4">★</button>
+                    <button type="button" class="star-btn active" data-value="5">★</button>
+                  </div>
+                  <input type="hidden" id="feedbackRating" value="5">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Feedback Category</label>
+                  <select class="form-select" id="feedbackCategory" required>
+                    <option value="Model & Scanner Accuracy">🎯 Model &amp; Scanner Accuracy</option>
+                    <option value="Dashboard Usability">🖥️ Dashboard Usability</option>
+                    <option value="Complaint & Support System">🚨 Complaint &amp; Support System</option>
+                    <option value="Chrome Extension Performance">🧩 Chrome Extension Performance</option>
+                    <option value="Feature Suggestion">💡 Feature Suggestion</option>
+                    <option value="General Thoughts">💬 General Thoughts</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Your Comments / Suggestions</label>
+                  <textarea class="form-textarea" id="feedbackComments" placeholder="Tell us what you liked or what features you would love to see next in NetArmor AI..." required></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="feedbackSubmitBtn">
+                  ⭐ Submit User Feedback
+                </button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- =======================================================
+             TAB 9: ACCOUNT SETTINGS
+             ======================================================= -->
+        <section class="tab-pane" id="pane-settings">
+          <div class="section-head">
+            <div>
+              <small>USER PROFILE &amp; PREFERENCES</small>
+              <h2>Account Settings</h2>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr); gap: 20px;">
+            <div class="panel">
+              <h3 style="margin: 0 0 16px; font-size: 1.15rem;">Profile Information</h3>
+
+              <form id="profileSettingsForm">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" class="form-input" id="profileFullName" placeholder="e.g. John Doe">
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-input" id="profileUsername" placeholder="e.g. jdoe_analyst" required>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Email Address (Auth Identity)</label>
+                    <input type="email" class="form-input" id="profileEmail" disabled style="opacity: 0.7; cursor: not-allowed;">
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Contact Phone Number</label>
+                    <input type="tel" class="form-input" id="profilePhone" placeholder="+1 (555) 000-0000">
+                  </div>
+
+                  <div class="form-group full-width">
+                    <label class="form-label">Organization / Security Team</label>
+                    <input type="text" class="form-input" id="profileOrg" placeholder="e.g. Cyber Threat Defense Lab">
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="saveProfileBtn">
+                  💾 Save Profile Changes
+                </button>
+              </form>
+            </div>
+
+            <div class="panel">
+              <h3 style="margin: 0 0 16px; font-size: 1.15rem;">Security &amp; Preferences</h3>
+
+              <div class="form-group">
+                <label class="form-label">Account Role</label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="badge safe" id="settingsRoleBadge">Standard Analyst</span>
+                  <small style="color: var(--muted); font-size: 0.72rem;">Managed by Lead Associate</small>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Account UID</label>
+                <code style="font-size: 0.76rem; color: #a7f3d0; word-break: break-all;" id="settingsUid">—</code>
+              </div>
+
+              <div style="border-top: 1px solid var(--line-subtle); padding-top: 16px; margin-top: 16px;">
+                <h4 style="margin: 0 0 10px; font-size: 0.9rem;">Password &amp; Credentials</h4>
+                <p style="font-size: 0.78rem; color: var(--muted); margin: 0 0 12px;">Need to update your login password? Use our secure self-service password update.</p>
+                <a href="update-password.html" class="btn btn-secondary btn-sm">
+                  🔑 Change Password
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 1: RAISE CYBER COMPLAINT
+       ========================================================= -->
+  <div class="modal-backdrop" id="complaintModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🚨 Raise Cyber Crime Complaint</h3>
+        <button class="modal-close-btn" onclick="closeModal('complaintModal')">✕</button>
+      </div>
+
+      <form id="newComplaintForm">
+        <div class="modal-body">
+          <p style="font-size: 0.8rem; color: var(--muted-light); margin-top: 0;">
+            Provide complete incident details. This report will be cataloged with an immutable tracking ID and logged in the Firestore security database.
+          </p>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Complaint Category</label>
+              <select class="form-select" id="cmpType" required>
+                <option value="Financial / Banking Fraud">💳 Financial / Banking Fraud</option>
+                <option value="Phishing & Credential Theft">🌐 Phishing &amp; Credential Theft</option>
+                <option value="Identity Theft & KYC Abuse">🪪 Identity Theft &amp; KYC Abuse</option>
+                <option value="Social Media Impersonation / Harassment">💬 Social Media Impersonation / Harassment</option>
+                <option value="Ransomware & Extortion">🔒 Ransomware &amp; Extortion</option>
+                <option value="Malware & Remote Access Attack">🦠 Malware &amp; Remote Access Attack</option>
+                <option value="Unauthorized Account Takeover">🔓 Unauthorized Account Takeover</option>
+                <option value="Other Cyber Incident">⚠️ Other Cyber Incident</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Incident Priority</label>
+              <select class="form-select" id="cmpPriority" required>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Critical">Critical (Immediate Financial Loss)</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">Complaint Subject / Title</label>
+              <input type="text" class="form-input" id="cmpTitle" placeholder="e.g. Unauthorized credit transaction following fake KYC SMS" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Incident Date &amp; Time</label>
+              <input type="datetime-local" class="form-input" id="cmpDateTime" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Suspect Reference Info (URL / Phone / Bank Ref)</label>
+              <input type="text" class="form-input" id="cmpReference" placeholder="e.g. UTR #12345678, +91-9876543210, scam-url.com">
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">Incident Narrative Description</label>
+              <textarea class="form-textarea" id="cmpDescription" placeholder="Detail how the incident occurred, what links or files you interacted with, and what damages occurred..." required></textarea>
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">Supporting Evidence File (Screenshot / PDF / Log)</label>
+              <div class="file-dropzone" id="fileDropzone">
+                <input type="file" id="cmpEvidenceFile" accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.docx,.csv">
+                <div class="file-dropzone-label">
+                  📁 <strong>Click or drag &amp; drop file here</strong><br>
+                  <span style="font-size: 0.72rem; color: var(--muted);">Allowed: PNG, JPG, WEBP, PDF, TXT, DOCX (Max 10MB)</span>
+                </div>
+              </div>
+              <div id="fileUploadStatus"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('complaintModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submitComplaintBtn">
+            🚀 Submit Complaint
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 2: OPEN SUPPORT TICKET
+       ========================================================= -->
+  <div class="modal-backdrop" id="ticketModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🎫 Open Support Ticket</h3>
+        <button class="modal-close-btn" onclick="closeModal('ticketModal')">✕</button>
+      </div>
+
+      <form id="newTicketForm">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Ticket Category</label>
+              <select class="form-select" id="tckCategory" required>
+                <option value="Threat Scanner">Threat Scanner</option>
+                <option value="False Positive Report">False Positive Report</option>
+                <option value="Account & Security">Account &amp; Security</option>
+                <option value="Browser Extension">Browser Extension</option>
+                <option value="Technical Bug">Technical Bug</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Priority</label>
+              <select class="form-select" id="tckPriority" required>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Urgent">Urgent</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">Ticket Subject</label>
+              <input type="text" class="form-input" id="tckSubject" placeholder="e.g. Legitimate internal domain flagged as phishing" required>
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">Detailed Explanation</label>
+              <textarea class="form-textarea" id="tckMessage" placeholder="Describe the issue or assistance needed..." required></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('ticketModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submitTicketBtn">
+            🎫 Create Ticket
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 3: VIEW COMPLAINT DETAILS
+       ========================================================= -->
+  <div class="modal-backdrop" id="viewComplaintModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="viewCmpHeader">Complaint Details</h3>
+        <button class="modal-close-btn" onclick="closeModal('viewComplaintModal')">✕</button>
+      </div>
+      <div class="modal-body" id="viewCmpBody">
+        Loading complaint record...
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('viewComplaintModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 4: VIEW TICKET DETAILS
+       ========================================================= -->
+  <div class="modal-backdrop" id="viewTicketModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="viewTckHeader">Ticket Details</h3>
+        <button class="modal-close-btn" onclick="closeModal('viewTicketModal')">✕</button>
+      </div>
+      <div class="modal-body" id="viewTckBody">
+        Loading ticket record...
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('viewTicketModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- DASHBOARD JAVASCRIPT ENGINE -->
   <script src="dashboard.js"></script>
 </body>
 </html>

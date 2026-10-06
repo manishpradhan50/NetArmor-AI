@@ -3,148 +3,915 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>NetArmor AI — Security Operations Admin Console</title>
+  <title>NetArmor AI — Security Operations Admin Console (SOC)</title>
   <link rel="icon" type="image/png" href="images/logo.png">
   <link rel="stylesheet" href="dashboard.css">
 
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-config.js"></script>
+  <!-- Google Firebase Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
 </head>
 
 <body>
   <div class="grid"></div>
 
-  <!-- HEADER -->
-  <header>
-    <a class="brand" href="index.html">
-      <img src="images/logo.png" alt="NetArmor Logo" style="width: 24px; height: 24px; object-fit: contain;">
-      <span>NetArmor <b>AI</b></span>
-    </a>
-
-    <nav>
-      <span class="admin" style="background: rgba(239, 68, 68, 0.15); color: #ff6b81; border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.8px;">
-        🛡️ ASSOCIATE SOC
-      </span>
-      <a href="detect.html" class="scan">
-        Threat Scanner
-      </a>
-      <button id="logout">
-        Logout
-      </button>
-    </nav>
-  </header>
-
-  <main>
-    <!-- WELCOME -->
-    <section class="welcome">
-      <div>
-        <small>SECURITY OPERATIONS CENTER</small>
-        <h1>
-          Admin Telemetry Dashboard
-        </h1>
-        <p>
-          Monitor authenticated users, global telemetry scans, and real-time threat rates.
-        </p>
+  <div class="app-shell">
+    <!-- =========================================================
+         SIDEBAR NAVIGATION
+         ========================================================= -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a class="brand" href="index.html">
+          <img src="images/logo.png" alt="NetArmor Logo" style="width: 26px; height: 26px; object-fit: contain;">
+          <span>NetArmor <b>AI</b></span>
+        </a>
+        <span class="brand-badge" style="background: rgba(239, 68, 68, 0.15); color: #ff6b81; border-color: rgba(239, 68, 68, 0.35);">
+          🛡️ SOC LEAD
+        </span>
       </div>
 
-      <button class="primary" id="refresh">
-        ↻ Refresh Data
-      </button>
-    </section>
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">SOC Operations</div>
+        <button class="nav-item active" data-tab="overview">
+          <span class="icon">📊</span>
+          <span>Command Center</span>
+        </button>
 
-    <!-- STATISTICS -->
-    <section class="stats">
-      <div>
-        <label>Registered Accounts</label>
-        <strong id="users">0</strong>
-        <em>Platform profiles</em>
+        <button class="nav-item" data-tab="complaints">
+          <span class="icon">🚨</span>
+          <span>Complaints Triage</span>
+          <span class="counter-badge threat-alert" id="sidebarComplaintCount">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="tickets">
+          <span class="icon">🎫</span>
+          <span>Support Desk</span>
+          <span class="counter-badge" id="sidebarTicketCount">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="telemetry">
+          <span class="icon">🌐</span>
+          <span>Global Telemetry</span>
+          <span class="counter-badge" id="sidebarScanCount">0</span>
+        </button>
+
+        <div class="nav-section-label">Administration</div>
+        <button class="nav-item" data-tab="users">
+          <span class="icon">👥</span>
+          <span>User Directory</span>
+          <span class="counter-badge" id="sidebarUserCount">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="feedback">
+          <span class="icon">⭐</span>
+          <span>Feedback Analytics</span>
+        </button>
+
+        <button class="nav-item" data-tab="health">
+          <span class="icon">⚡</span>
+          <span>System &amp; ML Health</span>
+        </button>
+
+        <div class="nav-section-label">Switch Workspace</div>
+        <a href="dashboard.html" class="nav-item" style="color: var(--cyan);">
+          <span class="icon">🖥️</span>
+          <span>Analyst Dashboard →</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-card">
+          <div class="user-avatar" id="adminAvatarText" style="border-color: rgba(239,68,68,0.4); color: #ff6b81; background: rgba(239,68,68,0.15);">A</div>
+          <div class="user-details">
+            <div class="user-name" id="adminUserName">Associate Lead</div>
+            <div class="user-role">
+              <span class="status-indicator-dot" style="background: #ff5577; box-shadow: 0 0 6px #ff5577;"></span>
+              <span style="color: #ff88a3;">Security Associate</span>
+            </div>
+          </div>
+          <button class="icon-button btn-sm" id="adminSidebarLogoutBtn" title="Logout" style="width: 30px; height: 30px;">
+            ⏻
+          </button>
+        </div>
       </div>
+    </aside>
 
-      <div>
-        <label>Total Analyses Run</label>
-        <strong id="total">0</strong>
-        <em>Platform-wide scans</em>
-      </div>
-
-      <div class="danger">
-        <label>Threats Neutralized</label>
-        <strong id="threats" style="color: var(--red);">0</strong>
-        <em>Flagged attacks</em>
-      </div>
-
-      <div>
-        <label>Global Threat Rate</label>
-        <strong id="rate">0%</strong>
-        <em>Ratio across all vectors</em>
-      </div>
-    </section>
-
-    <!-- ADMIN CONTENT -->
-    <section class="cols admincols">
-      <!-- THREAT ACTIVITY -->
-      <article class="panel">
-        <div class="head">
-          <div>
-            <small>GLOBAL TELEMETRY</small>
-            <h2>Recent Threat Activity</h2>
+    <!-- =========================================================
+         MAIN CONTENT AREA
+         ========================================================= -->
+    <div class="main-wrapper">
+      <!-- TOP NAVIGATION BAR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">☰</button>
+          <div class="breadcrumb-view">
+            <small>SOC Console</small> / <span id="currentViewTitle">Command Center</span>
           </div>
         </div>
 
-        <div class="table">
-          <table>
-            <thead>
-              <tr>
-                <th>Operator</th>
-                <th>Vector</th>
-                <th>Inspected Payload</th>
-                <th>Verdict</th>
-                <th>Risk Score</th>
-                <th>Timestamp</th>
-              </tr>
-            </thead>
-            <tbody id="threatsTable">
-              <tr>
-                <td colspan="6" class="empty">
-                  Loading activity telemetry...
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </article>
+        <div class="topbar-right">
+          <a href="dashboard.html" class="btn btn-secondary btn-sm" title="Switch to user view">
+            👤 User Console
+          </a>
 
-      <!-- USERS -->
-      <article class="panel">
-        <div class="head">
-          <div>
-            <small>IDENTITY MANAGEMENT</small>
-            <h2>Registered Users</h2>
+          <button class="btn btn-secondary btn-sm" id="adminChangeOwnPasswordBtn">
+            🔑 Change Password
+          </button>
+
+          <a href="detect.html" class="btn btn-primary btn-sm">
+            🔍 Launch Scanner
+          </a>
+
+          <!-- Notifications Bell -->
+          <div class="notification-btn-wrapper">
+            <button class="icon-button" id="notifBellBtn" aria-label="Notifications">
+              🔔
+              <span class="notif-badge-pill" id="notifCountPill" style="display: none;">0</span>
+            </button>
+
+            <!-- Notification Drawer -->
+            <div class="notification-popover" id="notifPopover">
+              <div class="notif-header">
+                <h4>SOC Incident Alerts</h4>
+                <button class="btn btn-secondary btn-sm" id="markAllNotifsReadBtn">Mark Read</button>
+              </div>
+              <div class="notif-list" id="notifList">
+                <div class="empty">No unread alerts</div>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-secondary btn-sm" id="logout">
+            Logout
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTENT PANES -->
+      <main class="content-container">
+
+        <!-- =======================================================
+             TAB 1: COMMAND CENTER (OVERVIEW)
+             ======================================================= -->
+        <section class="tab-pane active" id="pane-overview">
+          <!-- WELCOME BANNER -->
+          <div class="welcome-banner" style="background: linear-gradient(135deg, rgba(28, 10, 16, 0.88) 0%, rgba(16, 6, 10, 0.96) 100%); border-color: rgba(255, 85, 119, 0.25);">
+            <div class="welcome-info">
+              <small style="color: #ff7891;">SECURITY OPERATIONS CENTER (SOC)</small>
+              <h1>Associate Command Center</h1>
+              <p>
+                Platform-wide threat monitoring, global telemetry inspection, cyber crime case triage, and role-based identity management across NetArmor AI.
+              </p>
+              <div id="adminIdentityText" style="font-size: 0.78rem; color: var(--muted); margin-top: 6px;"></div>
+            </div>
+            <div class="banner-actions">
+              <button class="btn btn-primary" id="refreshAllBtn">
+                ↻ Refresh Global Telemetry
+              </button>
+              <button class="btn btn-secondary" onclick="switchTab('complaints')">
+                🚨 Case Triage Desk
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI STATS CARDS -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Registered Users</span>
+                <span class="kpi-icon-pill" style="color: var(--cyan);">👥</span>
+              </div>
+              <h3 class="kpi-value" id="users">0</h3>
+              <p class="kpi-subtext">Active enrolled analysts</p>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Total Global Scans</span>
+                <span class="kpi-icon-pill">🌐</span>
+              </div>
+              <h3 class="kpi-value" id="total">0</h3>
+              <p class="kpi-subtext">Platform-wide evaluations</p>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Threats Flagged</span>
+                <span class="kpi-icon-pill" style="color: var(--red);">🚨</span>
+              </div>
+              <h3 class="kpi-value" id="threats" style="color: var(--red);">0</h3>
+              <p class="kpi-subtext">Malicious vectors caught</p>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Global Threat Rate</span>
+                <span class="kpi-icon-pill">⚖️</span>
+              </div>
+              <h3 class="kpi-value" id="rate">0%</h3>
+              <p class="kpi-subtext">Ratio across all attacks</p>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Cyber Complaints</span>
+                <span class="kpi-icon-pill" style="color: var(--amber);">🚨</span>
+              </div>
+              <h3 class="kpi-value" id="kpiComplaints" style="color: var(--amber);">0</h3>
+              <p class="kpi-subtext">Incidents filed by users</p>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Support Tickets</span>
+                <span class="kpi-icon-pill" style="color: var(--purple);">🎫</span>
+              </div>
+              <h3 class="kpi-value" id="kpiTickets" style="color: var(--purple);">0</h3>
+              <p class="kpi-subtext">Open customer inquiries</p>
+            </div>
+          </div>
+
+          <!-- TWO-COLUMN SECTION -->
+          <div style="display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr); gap: 20px;">
+            <!-- RECENT GLOBAL THREAT SCANS -->
+            <div class="panel">
+              <div class="panel-header-flex">
+                <div>
+                  <small style="color: var(--green); font-size: 0.68rem; font-weight: 800; letter-spacing: 1px;">REAL-TIME FEED</small>
+                  <h3 style="margin: 3px 0 0; font-size: 1.15rem;">Live Global Threat Telemetry</h3>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="switchTab('telemetry')">View All Scans →</button>
+              </div>
+
+              <div class="table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Operator</th>
+                      <th>Vector</th>
+                      <th>Inspected Payload</th>
+                      <th>Verdict</th>
+                      <th>Risk Score</th>
+                      <th>Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody id="overviewThreatsTable">
+                    <tr><td colspan="6" class="empty">Scanning global telemetry database...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- RIGHT COLUMN: RECENT COMPLAINT TRIAGE QUEUE & VECTOR BREAKDOWN -->
+            <div>
+              <div class="panel">
+                <div class="panel-header-flex">
+                  <h4 style="margin: 0; font-size: 1rem;">Urgent Complaints Triage Queue</h4>
+                  <button class="btn btn-secondary btn-sm" onclick="switchTab('complaints')">Open Desk</button>
+                </div>
+                <div id="urgentComplaintsQueue" style="display: flex; flex-direction: column; gap: 8px;">
+                  <div class="empty" style="padding: 16px !important;">Checking triage queue...</div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <h4 style="margin: 0 0 12px; font-size: 1rem;">Threat Vector Breakdown</h4>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                  <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px;">
+                      <span>🌐 URL Structural Inspection</span>
+                      <strong id="breakdownUrl">0</strong>
+                    </div>
+                    <div style="height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
+                      <div id="barUrl" style="height: 100%; width: 45%; background: var(--cyan);"></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px;">
+                      <span>✉️ Email NLP Phishing</span>
+                      <strong id="breakdownEmail">0</strong>
+                    </div>
+                    <div style="height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
+                      <div id="barEmail" style="height: 100%; width: 35%; background: var(--green);"></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px;">
+                      <span>💬 SMS Smishing Vectors</span>
+                      <strong id="breakdownSms">0</strong>
+                    </div>
+                    <div style="height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
+                      <div id="barSms" style="height: 100%; width: 25%; background: var(--amber);"></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px;">
+                      <span>📄 PDF Document Malicious JS</span>
+                      <strong id="breakdownPdf">0</strong>
+                    </div>
+                    <div style="height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
+                      <div id="barPdf" style="height: 100%; width: 20%; background: var(--purple);"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =======================================================
+             TAB 2: CYBER COMPLAINTS TRIAGE DESK
+             ======================================================= -->
+        <section class="tab-pane" id="pane-complaints">
+          <div class="section-head">
+            <div>
+              <small>INCIDENT RESPONSE MANAGEMENT</small>
+              <h2>Cyber Crime &amp; Fraud Complaints Desk</h2>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="refreshAdminComplaintsBtn">↻ Refresh Incidents</button>
+          </div>
+
+          <div class="panel">
+            <div class="filter-bar">
+              <div class="search-input-box">
+                <span class="icon">🔍</span>
+                <input type="text" id="adminComplaintSearch" placeholder="Search by Complaint ID, Title, User email, or UTR/Ref...">
+              </div>
+
+              <select class="filter-select" id="adminComplaintStatusFilter">
+                <option value="all">All Statuses</option>
+                <option value="Submitted">Submitted (New)</option>
+                <option value="Under Review">Under Review</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+                <option value="Closed">Closed</option>
+              </select>
+
+              <select class="filter-select" id="adminComplaintPriorityFilter">
+                <option value="all">All Priorities</option>
+                <option value="Critical">⚡ Critical</option>
+                <option value="High">🔴 High</option>
+                <option value="Medium">🟠 Medium</option>
+                <option value="Low">🔵 Low</option>
+              </select>
+
+              <button class="btn btn-primary btn-sm" id="exportComplaintsBtn">📥 Export CSV</button>
+            </div>
+
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tracking ID</th>
+                    <th>User Identity</th>
+                    <th>Category</th>
+                    <th>Incident Title</th>
+                    <th>Priority</th>
+                    <th>Current Status</th>
+                    <th>Date Filed</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adminComplaintsTable">
+                  <tr><td colspan="8" class="empty">Loading cyber crime complaints...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =======================================================
+             TAB 3: SUPPORT TICKETS DESK
+             ======================================================= -->
+        <section class="tab-pane" id="pane-tickets">
+          <div class="section-head">
+            <div>
+              <small>CUSTOMER CARE DISPATCH</small>
+              <h2>Support Tickets Resolution Desk</h2>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="refreshAdminTicketsBtn">↻ Refresh Tickets</button>
+          </div>
+
+          <div class="panel">
+            <div class="filter-bar">
+              <div class="search-input-box">
+                <span class="icon">🔍</span>
+                <input type="text" id="adminTicketSearch" placeholder="Search by Ticket ID, Subject, or User email...">
+              </div>
+
+              <select class="filter-select" id="adminTicketCategoryFilter">
+                <option value="all">All Categories</option>
+                <option value="Threat Scanner">Threat Scanner</option>
+                <option value="Account & Security">Account &amp; Security</option>
+                <option value="False Positive Report">False Positive Report</option>
+                <option value="Browser Extension">Browser Extension</option>
+                <option value="Technical Bug">Technical Bug</option>
+              </select>
+
+              <select class="filter-select" id="adminTicketStatusFilter">
+                <option value="all">All Statuses</option>
+                <option value="Open">🟢 Open</option>
+                <option value="In Progress">⚙️ In Progress</option>
+                <option value="Resolved">✅ Resolved</option>
+                <option value="Closed">📁 Closed</option>
+              </select>
+            </div>
+
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Ticket ID</th>
+                    <th>User Email</th>
+                    <th>Category</th>
+                    <th>Subject</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adminTicketsTable">
+                  <tr><td colspan="8" class="empty">Loading support tickets...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =======================================================
+             TAB 4: GLOBAL TELEMETRY (ALL SCANS)
+             ======================================================= -->
+        <section class="tab-pane" id="pane-telemetry">
+          <div class="section-head">
+            <div>
+              <small>CROSS-PLATFORM LOGS</small>
+              <h2>Global Threat Telemetry Feed</h2>
+            </div>
+            <button class="btn btn-primary btn-sm" id="exportTelemetryBtn">📥 Export Telemetry CSV</button>
+          </div>
+
+          <div class="panel">
+            <div class="filter-bar">
+              <div class="search-input-box">
+                <span class="icon">🔍</span>
+                <input type="text" id="adminScanSearch" placeholder="Search target payload, URL, or operator username...">
+              </div>
+
+              <select class="filter-select" id="adminScanVectorFilter">
+                <option value="all">All Vectors</option>
+                <option value="url">🌐 URLs</option>
+                <option value="email">✉️ Emails</option>
+                <option value="message">💬 SMS / Messages</option>
+                <option value="document">📄 PDF Documents</option>
+              </select>
+
+              <select class="filter-select" id="adminScanResultFilter">
+                <option value="all">All Verdicts</option>
+                <option value="Threat">🚨 Threats Only</option>
+                <option value="Safe">🛡️ Safe Only</option>
+              </select>
+
+              <button class="btn btn-secondary btn-sm" id="refreshAdminScansBtn">↻ Refresh</button>
+            </div>
+
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Operator</th>
+                    <th>Vector</th>
+                    <th>Inspected Payload</th>
+                    <th>Verdict</th>
+                    <th>Risk Index</th>
+                    <th>Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody id="threatsTable">
+                  <tr><td colspan="6" class="empty">Loading global telemetry...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =======================================================
+             TAB 5: USER DIRECTORY & ACCESS ROLES
+             ======================================================= -->
+        <section class="tab-pane" id="pane-users">
+          <div class="section-head">
+            <div>
+              <small>IDENTITY &amp; ACCESS CONTROL</small>
+              <h2>Registered Users &amp; Role Management</h2>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-primary btn-sm" id="openAddUserModalBtn">
+                ＋ Add New User
+              </button>
+              <button class="btn btn-secondary btn-sm" id="refreshUsersBtn">
+                ↻ Refresh Directory
+              </button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="filter-bar">
+              <div class="search-input-box">
+                <span class="icon">🔍</span>
+                <input type="text" id="userSearchInput" placeholder="Search by name, email, or username...">
+              </div>
+
+              <select class="filter-select" id="userRoleFilter">
+                <option value="all">All Roles</option>
+                <option value="associate">🛡️ Associates (Lead)</option>
+                <option value="user">👤 Standard Analysts</option>
+              </select>
+            </div>
+
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>User / Identity</th>
+                    <th>Email Address</th>
+                    <th>Current Access Role</th>
+                    <th>Enrolled Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="userTable">
+                  <tr><td colspan="5" class="empty">Querying user credentials directory...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =======================================================
+             TAB 6: USER FEEDBACK & SENTIMENT
+             ======================================================= -->
+        <section class="tab-pane" id="pane-feedback">
+          <div class="section-head">
+            <div>
+              <small>USER EXPERIENCE ANALYTICS</small>
+              <h2>Platform Feedback &amp; Ratings</h2>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="refreshFeedbackBtn">↻ Refresh Feedback</button>
+          </div>
+
+          <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 2fr); gap: 20px;">
+            <div class="panel" style="text-align: center;">
+              <small style="color: var(--amber); font-weight: 800; letter-spacing: 1px;">AVERAGE SATISFACTION</small>
+              <h2 style="font-size: 3rem; margin: 12px 0 4px; color: #facc15;" id="avgRatingDisplay">5.0</h2>
+              <div style="color: #facc15; font-size: 1.4rem; margin-bottom: 8px;">★★★★★</div>
+              <p style="font-size: 0.8rem; color: var(--muted); margin: 0;">Based on submitted analyst reviews</p>
+            </div>
+
+            <div class="panel">
+              <h3 style="margin: 0 0 16px; font-size: 1.15rem;">Analyst Reviews &amp; Suggestions</h3>
+              <div id="feedbackList" style="display: flex; flex-direction: column; gap: 12px; max-height: 500px; overflow-y: auto;">
+                <div class="empty">Loading feedback logs...</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =======================================================
+             TAB 7: SYSTEM & ML PIPELINE HEALTH
+             ======================================================= -->
+        <section class="tab-pane" id="pane-health">
+          <div class="section-head">
+            <div>
+              <small>INFRASTRUCTURE STATUS</small>
+              <h2>System Architecture &amp; Pipeline Health</h2>
+            </div>
+            <button class="btn btn-primary btn-sm" id="pingHealthBtn">⚡ Ping Backend Health</button>
+          </div>
+
+          <div class="panel">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+              <div class="helpline-card">
+                <div class="helpline-top">
+                  <div class="helpline-icon" style="background: rgba(0,255,136,0.12); color: var(--green);">⚡</div>
+                  <h4 class="helpline-title">FastAPI Backend Service</h4>
+                </div>
+                <div style="font-size: 1.2rem; font-weight: 900; color: var(--green); margin: 6px 0;" id="backendStatusVal">ONLINE</div>
+                <p class="helpline-desc" id="backendEndpointVal">http://127.0.0.1:8000</p>
+              </div>
+
+              <div class="helpline-card">
+                <div class="helpline-top">
+                  <div class="helpline-icon" style="background: rgba(56,189,248,0.12); color: var(--cyan);">🔥</div>
+                  <h4 class="helpline-title">Firebase Cloud Firestore</h4>
+                </div>
+                <div style="font-size: 1.2rem; font-weight: 900; color: var(--cyan); margin: 6px 0;">CONNECTED</div>
+                <p class="helpline-desc">Project: netarmor-ai</p>
+              </div>
+
+              <div class="helpline-card">
+                <div class="helpline-top">
+                  <div class="helpline-icon" style="background: rgba(168,85,247,0.12); color: var(--purple);">🧠</div>
+                  <h4 class="helpline-title">XGBoost &amp; NLP Models</h4>
+                </div>
+                <div style="font-size: 1.2rem; font-weight: 900; color: var(--purple); margin: 6px 0;">OPERATIONAL</div>
+                <p class="helpline-desc">TF-IDF Vectorizer &amp; Structural Extractor</p>
+              </div>
+
+              <div class="helpline-card">
+                <div class="helpline-top">
+                  <div class="helpline-icon" style="background: rgba(245,158,11,0.12); color: var(--amber);">🤖</div>
+                  <h4 class="helpline-title">ArmorBot AI Assistant</h4>
+                </div>
+                <div style="font-size: 1.2rem; font-weight: 900; color: var(--amber); margin: 6px 0;">READY</div>
+                <p class="helpline-desc">Google Gemini 2.5/2.0 Flash</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 1: TRIAGE CYBER COMPLAINT
+       ========================================================= -->
+  <div class="modal-backdrop" id="triageModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="triageModalTitle">🚨 Triage Cyber Crime Incident</h3>
+        <button class="modal-close-btn" onclick="closeModal('triageModal')">✕</button>
+      </div>
+
+      <form id="triageForm">
+        <div class="modal-body">
+          <input type="hidden" id="triageDocId">
+          <input type="hidden" id="triageUserId">
+          <input type="hidden" id="triageCmpId">
+
+          <div style="background: rgba(255,255,255,0.03); padding: 14px; border-radius: 10px; border: 1px solid var(--line-subtle); margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <strong id="triageIncidentName" style="color: #fff;">—</strong>
+              <span id="triagePriorityBadge" class="badge medium">—</span>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--muted);" id="triageMetaInfo">—</div>
+            <div style="margin-top: 10px; font-size: 0.82rem; color: #dff5ec; background: rgba(0,0,0,0.25); padding: 10px; border-radius: 8px;" id="triageDescriptionText">—</div>
+            <div id="triageEvidenceLinkArea" style="margin-top: 10px;"></div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Update Incident Status</label>
+              <select class="form-select" id="triageStatusSelect" required>
+                <option value="Submitted">Submitted (Acknowledged)</option>
+                <option value="Under Review">Under Review (Triage Assigned)</option>
+                <option value="In Progress">In Progress (Active Forensic Investigation)</option>
+                <option value="Resolved">Resolved (Remediation / Advisory Issued)</option>
+                <option value="Closed">Closed (Case Concluded)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Assigned Associate / Lead</label>
+              <input type="text" class="form-input" id="triageAssociateName" readonly>
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">Official SOC Resolution Note / Advisory (Sent to User)</label>
+              <textarea class="form-textarea" id="triageResolutionNote" placeholder="Enter forensic findings, bank freeze recommendations, or status updates for the user..." required></textarea>
+            </div>
           </div>
         </div>
 
-        <div class="table">
-          <table>
-            <thead>
-              <tr>
-                <th>User / Identity</th>
-                <th>Access Role</th>
-                <th>Enrolled Date</th>
-              </tr>
-            </thead>
-            <tbody id="userTable">
-              <tr>
-                <td colspan="3" class="empty">
-                  Loading user directory...
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('triageModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveTriageBtn">
+            💾 Update Incident Status
+          </button>
         </div>
-      </article>
-    </section>
-  </main>
+      </form>
+    </div>
+  </div>
 
+  <!-- =========================================================
+       MODAL 2: MANAGE SUPPORT TICKET
+       ========================================================= -->
+  <div class="modal-backdrop" id="manageTicketModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="manageTicketTitle">🎫 Resolve Support Ticket</h3>
+        <button class="modal-close-btn" onclick="closeModal('manageTicketModal')">✕</button>
+      </div>
+
+      <form id="manageTicketForm">
+        <div class="modal-body">
+          <input type="hidden" id="manageTicketDocId">
+          <input type="hidden" id="manageTicketUserId">
+          <input type="hidden" id="manageTicketIdVal">
+
+          <div style="background: rgba(255,255,255,0.03); padding: 14px; border-radius: 10px; border: 1px solid var(--line-subtle); margin-bottom: 16px;">
+            <div style="font-weight: 700; color: #fff; margin-bottom: 4px;" id="manageTicketSubjectText">—</div>
+            <div style="font-size: 0.78rem; color: var(--muted);" id="manageTicketUserMeta">—</div>
+            <div style="margin-top: 10px; font-size: 0.82rem; color: #dff5ec; background: rgba(0,0,0,0.25); padding: 10px; border-radius: 8px;" id="manageTicketMessageText">—</div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Ticket Status</label>
+              <select class="form-select" id="manageTicketStatusSelect" required>
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+                <option value="Closed">Closed</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">Resolution / Staff Response</label>
+              <textarea class="form-textarea" id="manageTicketStaffNote" placeholder="Explain the fix or response provided to the analyst..." required></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('manageTicketModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveTicketBtn">
+            💾 Update Ticket
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 3: EDIT USER ROLE
+       ========================================================= -->
+  <div class="modal-backdrop" id="roleModal">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>👥 Modify User Access Role</h3>
+        <button class="modal-close-btn" onclick="closeModal('roleModal')">✕</button>
+      </div>
+
+      <form id="roleForm">
+        <div class="modal-body">
+          <input type="hidden" id="roleUserId">
+          <p style="font-size: 0.84rem; color: var(--muted-light); margin-top: 0;">
+            Promoting an account to <strong>Associate</strong> grants full access to this SOC Admin Console, user credential directory, and case triage system.
+          </p>
+
+          <div class="form-group">
+            <label class="form-label">Target User Identity</label>
+            <strong style="color: #fff; font-size: 1rem;" id="roleTargetName">—</strong>
+            <div style="color: var(--muted); font-size: 0.78rem; margin-top: 2px;" id="roleTargetEmail">—</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Assign Access Role</label>
+            <select class="form-select" id="roleSelect" required>
+              <option value="user">Standard User (Analyst)</option>
+              <option value="associate">Associate (Security Lead / SOC)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('roleModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveRoleBtn">
+            Save Permissions
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 4: ADD NEW PLATFORM USER
+       ========================================================= -->
+  <div class="modal-backdrop" id="addUserModal">
+    <div class="modal-card" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3>👤 Enroll New User Account</h3>
+        <button class="modal-close-btn" onclick="closeModal('addUserModal')">✕</button>
+      </div>
+
+      <form id="addUserForm">
+        <div class="modal-body">
+          <p style="font-size: 0.82rem; color: var(--muted-light); margin-top: 0;">
+            Create a new analyst or associate account directly in Firebase Authentication and enroll them in the platform user directory.
+          </p>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Full Name</label>
+              <input type="text" class="form-input" id="newFullName" placeholder="e.g. John Doe">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Username</label>
+              <input type="text" class="form-input" id="newUsername" placeholder="e.g. jdoe_analyst" minlength="3" required>
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">Email Address (Login Identity)</label>
+              <input type="email" class="form-input" id="newEmail" placeholder="e.g. jdoe@netarmor.ai" required>
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">Initial Password</label>
+              <div style="position: relative;">
+                <input type="password" class="form-input" id="newPassword" placeholder="Minimum 8 characters" minlength="8" required style="padding-right: 40px;">
+                <button type="button" id="toggleNewPasswordBtn" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--muted); cursor: pointer; padding: 0; font-size: 1rem;">👁</button>
+              </div>
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">Platform Access Role</label>
+              <select class="form-select" id="newRoleSelect" required>
+                <option value="user">👤 Standard User (Security Analyst)</option>
+                <option value="associate">🛡️ Associate (Security Lead / SOC Access)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('addUserModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submitAddUserBtn">
+            🚀 Create User Account
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 5: CHANGE / RESET PASSWORD
+       ========================================================= -->
+  <div class="modal-backdrop" id="changePasswordModal">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 id="pwdModalTitle">🔑 User Password Management</h3>
+        <button class="modal-close-btn" onclick="closeModal('changePasswordModal')">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="pwdTargetUserId">
+        <input type="hidden" id="pwdTargetUserEmail">
+
+        <div style="background: rgba(255,255,255,0.03); padding: 14px; border-radius: 10px; border: 1px solid var(--line-subtle); margin-bottom: 16px;">
+          <div style="font-size: 0.74rem; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 0.8px;">TARGET USER</div>
+          <div style="font-weight: 700; color: #fff; font-size: 1rem; margin-top: 3px;" id="pwdTargetDisplayName">—</div>
+          <div style="color: #a7f3d0; font-size: 0.82rem; font-family: monospace;" id="pwdTargetEmailDisplay">—</div>
+        </div>
+
+        <!-- SECTION A: ADMIN OWN PASSWORD DIRECT UPDATE (Shown when editing self) -->
+        <form id="adminSelfPasswordForm" style="display: none;">
+          <p style="font-size: 0.82rem; color: var(--muted-light); margin-top: 0;">
+            Update your own Associate password directly in Firebase Authentication:
+          </p>
+          <div class="form-group">
+            <label class="form-label">New Password</label>
+            <input type="password" class="form-input" id="adminSelfNewPwd" minlength="8" placeholder="Minimum 8 characters" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirm New Password</label>
+            <input type="password" class="form-input" id="adminSelfConfirmPwd" minlength="8" placeholder="Confirm password" required>
+          </div>
+          <button type="submit" class="btn btn-primary" id="saveSelfPwdBtn" style="width: 100%; margin-top: 6px;">
+            🔒 Update My Password Directly
+          </button>
+        </form>
+
+        <!-- SECTION B: OTHER USER PASSWORD RECOVERY (Shown when editing another user) -->
+        <div id="otherUserPasswordSection" style="display: none;">
+          <p style="font-size: 0.82rem; color: var(--muted-light); line-height: 1.5; margin-top: 0;">
+            Send a verified password-reset link to this user's registered email address. The user will be able to securely choose a new password.
+          </p>
+          <button type="button" class="btn btn-primary" id="sendUserResetLinkBtn" style="width: 100%; margin-bottom: 12px;">
+            📧 Send Password Reset Email Link
+          </button>
+          <p style="font-size: 0.74rem; color: var(--muted); line-height: 1.4; margin: 0;">
+            ℹ️ <em>Security Note:</em> Under Firebase Authentication standards, password changes for existing accounts require cryptographic token verification via their registered email to preserve credential audit trails.
+          </p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('changePasswordModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ADMIN DASHBOARD JAVASCRIPT ENGINE -->
   <script src="admin-dashboard.js"></script>
 </body>
 </html>

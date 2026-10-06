@@ -18,26 +18,26 @@
 <p>Submitted information is used to perform the requested security analysis, display results, maintain authenticated scan history and operate the application.</p>
 <h2>3. AI Assistant</h2>
 <p>ArmorBot uses the configured Gemini API to answer cybersecurity questions. Do not submit passwords, authentication tokens, payment-card data or other highly sensitive information to the assistant.</p>
-<h2>4. Supabase</h2>
-<p>Supabase is used for authentication and application data. Access to account and scan-history data is controlled through authentication and database Row Level Security policies in the supplied project schema.</p>
+<h2>4. Google Firebase</h2>
+<p>Google Firebase is used for authentication and application data (Cloud Firestore). Access to account and scan-history data is controlled through Firebase Authentication and Cloud Firestore security rules in the supplied project schema.</p>
 <h2>5. PDF Processing</h2>
 <p>Uploaded PDFs are processed by the NetArmor backend to extract text, hyperlinks and selected PDF indicators. The application is intended to analyze the document; it does not guarantee that a document is safe or malicious-free.</p>
 <h2>6. Scan History</h2>
 <p>For privacy, the frontend records a short target label rather than storing the submitted email or message body in scan history. Users can view their own history. Authorized associate accounts can view platform scan records as required for the security dashboard.</p>
 <h2>7. Data Retention</h2>
-<p>Scan-history records remain in the configured Supabase database until they are deleted by an authorized administrator or through a future data-retention process. Hosting and third-party providers may retain operational logs according to their own policies.</p>
+<p>Scan-history records remain in the configured Cloud Firestore database until they are deleted by an authorized administrator or through a future data-retention process. Hosting and third-party providers may retain operational logs according to their own policies.</p>
 <h2>8. Security</h2>
-<p>Production deployments should use HTTPS, Supabase authentication, Row Level Security and server-side storage for private API credentials. The Supabase service-role key and Gemini API key must never be included in browser or extension code.</p>
+<p>Production deployments should use HTTPS, Firebase Authentication, Cloud Firestore Security Rules and server-side storage for private API credentials. Secret service keys and Gemini API keys must never be included in browser or extension code.</p>
 <h2>9. Browser Extension</h2>
 <p>The Chrome extension can send the active page URL or user-entered content to the NetArmor backend when the user requests a scan. The extension should not be used to submit confidential information.</p>
 <h2>10. Cookies and Local Storage</h2>
-<p>Supabase authentication may use browser storage to maintain a signed-in session. The application may also use session storage for temporary profile information and local storage for interface preferences.</p>
+<p>Firebase authentication may use browser storage (IndexedDB / LocalStorage) to maintain a signed-in session. The application may also use session storage for temporary profile information and local storage for interface preferences.</p>
 <h2>11. Third-Party Services</h2>
-<p>NetArmor AI may rely on Supabase, Google Gemini and its hosting provider. Their own terms and privacy policies may apply to data processed by those services.</p>
+<p>NetArmor AI may rely on Google Firebase, Google Gemini and its hosting provider. Their own terms and privacy policies may apply to data processed by those services.</p>
 <h2>12. Children's Privacy</h2>
 <p>The project is not intentionally designed to collect personal information from children. Users should avoid submitting another person's personal or confidential information without appropriate authorization.</p>
 <h2>13. User Choices</h2>
-<p>Users can stop using the service, sign out, and contact the project administrators regarding account or stored scan-history questions. Account deletion procedures depend on the configured Supabase deployment.</p>
+<p>Users can stop using the service, sign out, and contact the project administrators regarding account or stored scan-history questions. Account deletion procedures depend on the configured Firebase deployment.</p>
 <h2>14. Changes</h2>
 <p>This policy may be updated when the application's data practices change. The date at the top will be updated when a new version is published.</p>
 <h2>15. Contact</h2>

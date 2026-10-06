@@ -14,10 +14,17 @@ from pypdf import PdfReader
 # Explicitly load local .env if present
 load_dotenv()
 
+import uuid
+from fastapi.staticfiles import StaticFiles
+
 # Determine project base directory
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
+
+# Ensure uploads directory exists
+UPLOADS_DIR = os.path.join(BASE_DIR, "uploads", "evidence")
+os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 from ml_pipeline.url_features import extract_url_features
 
@@ -34,6 +41,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static uploads directory
+app.mount("/uploads", StaticFiles(directory=os.path.join(BASE_DIR, "uploads")), name="uploads")
 
 # Knowledge base for NetArmor AI Assistant
 NETARMOR_KNOWLEDGE = """
@@ -336,3 +346,42 @@ def chat_with_assistant(payload: ChatRequest):
             print(f"Chatbot failed with model {model_name}: {e}")
 
     return {"reply": f"ArmorBot is currently unavailable: {str(last_error)}"}
+
+# -------------------------------------------------------------
+# 6. Cyber Complaint Evidence File Upload Endpoint
+# -------------------------------------------------------------
+@app.post("/api/upload-evidence")
+async def upload_complaint_evidence(file: UploadFile = File(...)):
+    """Upload supporting document, screenshot, or evidence file for a cyber complaint."""
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="No file uploaded.")
+
+    # Validate file extension
+    allowed_extensions = {".png", ".jpg", ".jpeg", ".webp", ".pdf", ".txt", ".docx", ".csv"}
+    _, ext = os.path.splitext(file.filename.lower())
+    if ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '{ext}'. Allowed: PNG, JPG, WEBP, PDF, TXT, DOCX, CSV."
+        )
+
+    # Read content and enforce 10MB limit
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File size exceeds maximum 10MB limit.")
+
+    # Generate sanitized unique filename
+    safe_basename = re.sub(r'[^a-zA-Z0-9_\.-]', '_', file.filename)
+    unique_filename = f"{uuid.uuid4().hex[:10]}_{safe_basename}"
+    destination_path = os.path.join(UPLOADS_DIR, unique_filename)
+
+    with open(destination_path, "wb") as f:
+        f.write(content)
+
+    return {
+        "status": "success",
+        "filename": unique_filename,
+        "original_name": file.filename,
+        "size_bytes": len(content),
+        "url": f"/uploads/evidence/{unique_filename}"
+    }

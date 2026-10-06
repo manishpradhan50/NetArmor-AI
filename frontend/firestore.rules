@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: Verify user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: Verify user has 'associate' role
+    function isAssociate() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'associate';
+    }
+
+    // Profiles Collection
+    match /profiles/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAssociate());
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && (
+        (request.auth.uid == userId && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) ||
+          request.resource.data.role == resource.data.role
+        )) ||
+        isAssociate()
+      );
+      allow delete: if isAssociate();
+    }
+
+    // Scan History Telemetry Collection
+    match /scan_history/{scanId} {
+      allow read: if isAuthenticated() && (
+        resource.data.user_id == request.auth.uid || isAssociate()
+      );
+      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+      allow update, delete: if isAssociate();
+    }
+
+    // Cyber Crime & Fraud Complaints Collection
+    match /cyber_complaints/{complaintId} {
+      allow read: if isAuthenticated() && (
+        resource.data.user_id == request.auth.uid || isAssociate()
+      );
+      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        (resource.data.user_id == request.auth.uid && request.resource.data.user_id == request.auth.uid) ||
+        isAssociate()
+      );
+      allow delete: if isAssociate();
+    }
+
+    // Support Tickets Collection
+    match /support_tickets/{ticketId} {
+      allow read: if isAuthenticated() && (
+        resource.data.user_id == request.auth.uid || isAssociate()
+      );
+      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        (resource.data.user_id == request.auth.uid && request.resource.data.user_id == request.auth.uid) ||
+        isAssociate()
+      );
+      allow delete: if isAssociate();
+    }
+
+    // User Feedback Collection
+    match /user_feedback/{feedbackId} {
+      allow read: if isAuthenticated() && (
+        resource.data.user_id == request.auth.uid || isAssociate()
+      );
+      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+      allow update, delete: if isAssociate();
+    }
+
+    // User In-App Notifications Collection
+    match /user_notifications/{notificationId} {
+      allow read: if isAuthenticated() && (
+        resource.data.user_id == request.auth.uid || isAssociate()
+      );
+      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.user_id == request.auth.uid || isAssociate()
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.user_id == request.auth.uid || isAssociate()
+      );
+    }
+  }
+}

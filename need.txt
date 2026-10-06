@@ -1,0 +1,41 @@
+Upgrade the existing User Dashboard into a modern, professional, production-ready dashboard. First understand the existing project structure, authentication, database, and current features before making changes. Do not break any existing functionality.
+
+Add useful features such as:
+
+Customer Care / Help Center
+Raise Cyber Complaint
+Report Fraud or Suspicious Activity
+Complaint Tracking with unique complaint ID
+Complaint History and Status
+Support Ticket System
+Notifications
+User Profile & Account Settings
+Security Center
+FAQ
+Feedback
+Recent Activity
+Logout
+
+For the Cyber Complaint feature, allow users to submit complaint type, title, description, incident details, date/time, reference information, and supporting files if the current backend supports uploads. Save complaints to the database and allow users to track statuses such as Submitted, Under Review, In Progress, Resolved, and Closed.
+
+Improve the dashboard UI with:
+
+Modern sidebar/navigation
+Attractive dashboard cards
+Quick-action buttons
+Statistics cards
+Relevant icons and illustrations
+Professional typography and spacing
+Notifications and alerts
+Recent activity section
+Responsive desktop, tablet, and mobile layouts
+Loading, empty, success, and error states
+Toast messages and confirmation dialogs
+
+Make every button functional and connect new features to the existing backend/database instead of using static dummy data.
+
+Keep the design clean, professional, and visually balanced. Do not overcrowd the dashboard or add unnecessary features just for decoration.
+
+Use the existing technology stack and reusable components wherever possible. Keep sensitive keys in environment variables, maintain proper authentication and route protection, and follow clean, maintainable coding practices.
+
+Finally, test the major user flows and make sure the dashboard feels like a real-world production application rather than a basic student project.

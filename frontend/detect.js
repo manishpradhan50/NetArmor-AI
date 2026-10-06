@@ -3,7 +3,8 @@
    Multi-Vector Diagnostics, Telemetry & Assistant Interface
    ========================================================= */
 
-const sb = window.netarmorSupabase;
+const getAuth = () => window.netarmorAuth;
+const getDb = () => window.netarmorDb;
 let currentApiBase = null;
 let selectedPdfFile = null;
 
@@ -40,29 +41,29 @@ function showScanToast(message) {
   }, 3200);
 }
 
-// Record scan telemetry to Supabase scan_history
+// Record scan telemetry to Cloud Firestore scan_history
 async function recordScan(scanType, target, riskScore) {
-  if (!sb) return;
+  const auth = getAuth();
+  const db = getDb();
+  if (!auth || !db) return;
+
   try {
-    const { data: { user } } = await sb.auth.getUser();
+    const user = auth.currentUser;
     if (!user) return; // Unauthenticated guest scan
 
     const cleanTarget = String(target || "Scan diagnosis").slice(0, 300);
     const scoreNum = Math.max(0, Math.min(100, Number(riskScore) || 0));
 
-    const { error } = await sb.from("scan_history").insert({
-      user_id: user.id,
+    await db.collection("scan_history").add({
+      user_id: user.uid,
       scan_type: scanType,
       target: cleanTarget,
       result: scoreNum >= 50 ? "Threat" : "Safe",
-      risk_score: scoreNum
+      risk_score: scoreNum,
+      created_at: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    if (!error) {
-      showScanToast("✓ Telemetry record saved to your dashboard history");
-    } else {
-      console.warn("Scan history save warning:", error.message);
-    }
+    showScanToast("✓ Telemetry record saved to your dashboard history");
   } catch (error) {
     console.warn("Telemetry record bypassed:", error);
   }
@@ -70,23 +71,30 @@ async function recordScan(scanType, target, riskScore) {
 
 // Update navbar based on authentication session
 async function updateAuthNav() {
-  if (!sb) return;
+  const auth = getAuth();
+  const db = getDb();
+  if (!auth) return;
+
   const navDashboardBtn = document.getElementById("navDashboardBtn");
   const navLoginBtn = document.getElementById("navLoginBtn");
 
   try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session && session.user) {
+    const user = await window.netarmorAuthReady();
+    if (user) {
       if (navLoginBtn) navLoginBtn.style.display = "none";
       if (navDashboardBtn) {
         navDashboardBtn.style.display = "inline-block";
-        const { data: profile } = await sb
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .maybeSingle();
+        let role = "user";
+        if (db) {
+          try {
+            const profileDoc = await db.collection("profiles").doc(user.uid).get();
+            if (profileDoc.exists) {
+              role = String(profileDoc.data().role || "user").toLowerCase();
+            }
+          } catch (_) {}
+        }
 
-        if (profile?.role === "associate") {
+        if (role === "associate") {
           navDashboardBtn.href = "admin-dashboard.html";
           navDashboardBtn.textContent = "Admin Console";
         } else {

@@ -1,9 +1,11 @@
-const sb = window.netarmorSupabase;
+const getAuth = () => window.netarmorAuth;
 const form = document.getElementById("updatePasswordForm");
 const message = document.getElementById("updateMessage");
 const button = document.getElementById("updatePasswordBtn");
 
-let recoveryReady = false;
+const urlParams = new URLSearchParams(window.location.search);
+const oobCode = urlParams.get("oobCode");
+let resetActionVerified = false;
 
 function showMessage(text, success = false) {
   if (!message) return;
@@ -12,26 +14,31 @@ function showMessage(text, success = false) {
   message.style.color = success ? "#00ff88" : "#ff6b81";
 }
 
-if (sb) {
-  sb.auth.onAuthStateChange((event, session) => {
-    if (event === "PASSWORD_RECOVERY" || (session && (window.location.hash.includes("recovery") || window.location.hash.includes("access_token")))) {
-      recoveryReady = true;
-      showMessage("Password recovery session verified. Enter your new password below.", true);
-    }
-  });
-}
-
 async function init() {
-  if (!sb) return showMessage("Supabase configuration missing. Check supabase-config.js.");
-
-  // Allow Supabase JS a brief tick to parse tokens in URL hash
-  if (window.location.hash.includes("access_token") || window.location.hash.includes("recovery") || window.location.search.includes("code")) {
-    await new Promise((res) => setTimeout(res, 600));
+  const auth = getAuth();
+  if (!auth) {
+    showMessage("Firebase is not initialized. Check firebase-config.js.");
+    return;
   }
 
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session && !recoveryReady) {
-    showMessage("This password-reset link is missing or has expired. Please request a new one from the login portal.");
+  // Check if we arrived via a Firebase password-reset email link (contains oobCode)
+  if (oobCode) {
+    try {
+      const email = await auth.verifyPasswordResetCode(oobCode);
+      resetActionVerified = true;
+      showMessage(`Password recovery verified for ${email}. Enter your new password below.`, true);
+      return;
+    } catch (err) {
+      console.error("Code verification error:", err);
+      showMessage("This password-reset link is invalid or has expired. Please request a new link.");
+      return;
+    }
+  }
+
+  // Otherwise, check if user is currently signed in
+  const user = await window.netarmorAuthReady();
+  if (!user && !resetActionVerified) {
+    showMessage("No password reset code found and no active session. Please request a reset link from the login portal.");
   }
 }
 
@@ -42,21 +49,34 @@ form?.addEventListener("submit", async (event) => {
 
   if (password.length < 8) return showMessage("Password must contain at least 8 characters.");
   if (password !== confirm) return showMessage("Passwords do not match.");
-  if (!sb) return showMessage("Supabase is not configured correctly.");
+
+  const auth = getAuth();
+  if (!auth) return showMessage("Firebase is not configured correctly.");
 
   button.disabled = true;
   button.textContent = "Updating...";
 
   try {
-    const { error } = await sb.auth.updateUser({ password });
-    if (error) throw error;
+    if (oobCode) {
+      // 1. Reset password using email action code
+      await auth.confirmPasswordReset(oobCode, password);
+    } else if (auth.currentUser) {
+      // 2. Active session password update
+      await auth.currentUser.updatePassword(password);
+    } else {
+      throw new Error("Session expired or reset code is missing.");
+    }
+
     showMessage("Password updated successfully! Redirecting to login...", true);
     setTimeout(async () => {
-      await sb.auth.signOut();
+      try {
+        await auth.signOut();
+      } catch (_) {}
       sessionStorage.removeItem("netarmor_profile");
       window.location.replace("login.html");
     }, 1500);
   } catch (error) {
+    console.error("Password update error:", error);
     showMessage(error.message || "Unable to update password.");
   } finally {
     button.disabled = false;
@@ -64,4 +84,4 @@ form?.addEventListener("submit", async (event) => {
   }
 });
 
-init();
+document.addEventListener("DOMContentLoaded", init);

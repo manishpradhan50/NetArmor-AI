@@ -309,12 +309,11 @@ async function checkBackendHealth() {
 
 // Update login buttons if user is already authenticated
 async function checkUserSession() {
-  const sb = window.netarmorSupabase;
-  if (!sb) return;
+  if (!window.netarmorAuth) return;
 
   try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session && session.user) {
+    const user = await window.netarmorAuthReady();
+    if (user) {
       const desktopBtn = document.getElementById("desktopLoginBtn");
       const mobileBtn = document.getElementById("mobileLoginBtn");
 
@@ -322,15 +321,14 @@ async function checkUserSession() {
       let btnLabel = "Dashboard";
 
       // Check if user is associate
-      const { data: profile } = await sb
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .maybeSingle();
-
-      if (profile?.role === "associate") {
-        targetHref = "admin-dashboard.html";
-        btnLabel = "Admin Console";
+      if (window.netarmorDb) {
+        try {
+          const profileDoc = await window.netarmorDb.collection("profiles").doc(user.uid).get();
+          if (profileDoc.exists && String(profileDoc.data().role).toLowerCase() === "associate") {
+            targetHref = "admin-dashboard.html";
+            btnLabel = "Admin Console";
+          }
+        } catch (_) {}
       }
 
       [desktopBtn, mobileBtn].forEach((btn) => {

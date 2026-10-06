@@ -1,5 +1,6 @@
--- NetArmor AI - Supabase Schema & Security Setup
--- Execute this entire script in your Supabase SQL Editor.
+-- [LEGACY ARCHIVE] NetArmor AI - Supabase Schema & Security Setup
+-- NOTE: NetArmor AI database has been migrated to Google Firebase (Cloud Firestore & Firebase Auth).
+-- Please use 'firestore.rules' for security rules in the Firebase Console.
 -- Public registration creates role='user'. Promote associates manually to 'associate'.
 
 create table if not exists public.profiles (
