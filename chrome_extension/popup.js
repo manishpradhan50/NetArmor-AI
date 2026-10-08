@@ -39,6 +39,9 @@ async function scanActiveTab() {
   const urlBox = document.getElementById("url-box");
   const scoreElem = document.getElementById("url-score");
   const badgeElem = document.getElementById("url-badge");
+  const domainBar = document.getElementById("url-domain-bar");
+  const regDomElem = document.getElementById("url-reg-dom");
+  const detailsElem = document.getElementById("url-details");
 
   if (!urlBox || !scoreElem || !badgeElem) return;
 
@@ -66,13 +69,37 @@ async function scanActiveTab() {
 
     scoreElem.innerText = `${data.risk_percentage}%`;
     badgeElem.innerText = data.verdict;
-    badgeElem.className = data.risk_percentage >= 50 ? "badge danger" : "badge safe";
-    scoreElem.style.color = data.risk_percentage >= 50 ? "var(--danger)" : "var(--safe)";
+
+    if (domainBar && regDomElem && data.registered_domain) {
+      domainBar.style.display = "block";
+      regDomElem.innerText = data.registered_domain;
+    }
+
+    if (detailsElem) {
+      if (data.flags && data.flags.length > 0) {
+        detailsElem.innerText = data.flags[0];
+      } else {
+        detailsElem.innerText = "";
+      }
+    }
+
+    if (data.verdict.includes("Suspicious")) {
+      badgeElem.className = "badge warning";
+      scoreElem.style.color = "#f59e0b";
+    } else if (data.risk_percentage >= 50 || data.verdict.includes("Phishing") || data.verdict.includes("Malicious")) {
+      badgeElem.className = "badge danger";
+      scoreElem.style.color = "var(--danger)";
+    } else {
+      badgeElem.className = "badge safe";
+      scoreElem.style.color = "var(--safe)";
+    }
   } catch (err) {
     scoreElem.innerText = "Offline";
     badgeElem.innerText = "API Offline";
     badgeElem.className = "badge danger";
     scoreElem.style.color = "var(--danger)";
+    if (domainBar) domainBar.style.display = "none";
+    if (detailsElem) detailsElem.innerText = "";
   }
 }
 

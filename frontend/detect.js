@@ -352,6 +352,9 @@ async function analyzeURL() {
   const url = document.getElementById("urlInput").value.trim();
   if (!url) return alert("Please enter a valid website URL to analyze.");
 
+  const box = document.getElementById("urlResult");
+  if (box) box.classList.add("hidden");
+
   const scanBtn = document.getElementById("scanUrlBtn");
   scanBtn.innerText = "Analyzing Structural Vectors...";
   scanBtn.disabled = true;
@@ -367,34 +370,95 @@ async function analyzeURL() {
       delay(500)
     ]);
     
-    if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || `HTTP Error: ${res.status}`);
+    }
     const data = await res.json();
 
     const box = document.getElementById("urlResult");
     const score = document.getElementById("urlScore");
     const badge = document.getElementById("urlBadge");
+    const confidence = document.getElementById("urlConfidence");
     const flags = document.getElementById("urlFlags");
+
+    const hostElem = document.getElementById("urlHostname");
+    const regDomElem = document.getElementById("urlRegisteredDomain");
+    const subElem = document.getElementById("urlSubdomain");
+    const brandElem = document.getElementById("urlBrandStatus");
+
+    const auditStructure = document.getElementById("urlAuditStructure");
+    const auditBrand = document.getElementById("urlAuditBrand");
+    const auditModel = document.getElementById("urlAuditModel");
+    const auditReputation = document.getElementById("urlAuditReputation");
 
     box.classList.remove("hidden");
     score.innerText = `${data.risk_percentage}% Threat`;
-    badge.innerText = data.verdict;
 
-    if (data.risk_percentage >= 50) {
+    if (confidence) {
+      confidence.innerHTML = `<i class="fa-solid fa-gauge-high"></i> <span>${escapeHtml(data.confidence_level || "Analysis Complete")}</span>`;
+    }
+
+    // Set Professional Status Badges & Colors
+    if (data.verdict.includes("Suspicious")) {
+      score.style.color = "var(--warning)";
+      badge.className = "badge badge-warning";
+      badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(data.verdict)}`;
+    } else if (data.risk_percentage >= 50 || data.verdict.includes("Phishing") || data.verdict.includes("Malicious")) {
       score.style.color = "var(--danger)";
       badge.className = "badge badge-danger";
+      badge.innerHTML = `<i class="fa-solid fa-shield-virus"></i> ${escapeHtml(data.verdict)}`;
     } else {
       score.style.color = "var(--safe)";
       badge.className = "badge badge-safe";
+      badge.innerHTML = `<i class="fa-solid fa-shield-check"></i> ${escapeHtml(data.verdict)}`;
     }
 
-    flags.innerHTML = (data.flags && data.flags.length > 0)
-      ? data.flags.map(f => `<li>${escapeHtml(f)}</li>`).join("")
-      : "<li>No malicious anomalies detected in URL structure.</li>";
+    // Populate Domain Telemetry Meta Grid
+    if (hostElem) hostElem.innerText = data.hostname || "--";
+    if (regDomElem) regDomElem.innerText = data.registered_domain || "--";
+    if (subElem) subElem.innerText = data.subdomain ? data.subdomain : "None";
+    
+    if (brandElem) {
+      if (data.is_official_domain && (data.brand_association || data.brand_detected)) {
+        brandElem.className = "meta-val val-brand-safe";
+        brandElem.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${escapeHtml(data.brand_association || (data.brand_detected + " (Official)"))}`;
+      } else if (data.brand_detected || (data.brand_association && !data.brand_association.startsWith("None"))) {
+        brandElem.className = "meta-val val-brand-danger";
+        brandElem.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(data.brand_association || (data.brand_detected + " (Impersonation)"))}`;
+      } else {
+        brandElem.className = "meta-val";
+        brandElem.innerText = data.brand_association || "None / Standard Domain";
+      }
+    }
+
+    // Populate 4-Vector Categorized Audit Grid
+    const renderAuditList = (elem, items, defaultText) => {
+      if (!elem) return;
+      if (items && items.length > 0) {
+        elem.innerHTML = items.map(item => `<li>${escapeHtml(item)}</li>`).join("");
+      } else {
+        elem.innerHTML = `<li>${escapeHtml(defaultText)}</li>`;
+      }
+    };
+
+    const cats = data.category_breakdown || {};
+    renderAuditList(auditStructure, cats.domain_structure, "No structural anomalies detected.");
+    renderAuditList(auditBrand, cats.brand_impersonation, "No brand impersonation detected.");
+    renderAuditList(auditModel, cats.model_prediction, "Model baseline within expected limits.");
+    renderAuditList(auditReputation, cats.reputation_intelligence, "Standard registry status.");
+
+    // Populate Full Flags
+    if (flags) {
+      flags.innerHTML = (data.flags && data.flags.length > 0)
+        ? data.flags.map(f => `<li>${escapeHtml(f)}</li>`).join("")
+        : "<li>No malicious anomalies detected in URL structure.</li>";
+    }
 
     await recordScan("url", url, data.risk_percentage);
 
   } catch (err) {
-    alert("Threat engine unavailable. Please ensure your FastAPI backend is running or cloud service has started.");
+    alert(err.message || "Threat engine unavailable. Please ensure your FastAPI backend is running or cloud service has started.");
   } finally {
     scanBtn.innerText = "Scan Website URL";
     scanBtn.disabled = false;

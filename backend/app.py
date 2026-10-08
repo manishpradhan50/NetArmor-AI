@@ -27,6 +27,13 @@ UPLOADS_DIR = os.path.join(BASE_DIR, "uploads", "evidence")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 from ml_pipeline.url_features import extract_url_features
+from ml_pipeline.domain_analysis import (
+    evaluate_url_security,
+    normalize_url,
+    extract_domain_info,
+    detect_brand_impersonation,
+    BRAND_CATALOG
+)
 
 app = FastAPI(
     title="NetArmor AI API",
@@ -141,13 +148,31 @@ def extract_root_host(url: str) -> str:
     return host
 
 def is_trusted_legitimate_domain(url: str) -> bool:
-    host = extract_root_host(url)
-    if not host or "@" in url:
+    """
+    Public Suffix List-aware verification for authoritative domains.
+    Guarantees that a brand appearing in a subdomain (e.g. google.com.example.com)
+    is NOT recognized as legitimate Google domain.
+    """
+    if not url or "@" in url:
         return False
-    for domain in TRUSTED_DOMAINS:
-        if host == domain or host.endswith("." + domain):
+    try:
+        norm = normalize_url(url)
+        if norm["has_at_symbol"]:
+            return False
+        info = extract_domain_info(norm)
+        if info["is_ip"]:
+            return False
+        reg_dom = info["registered_domain"].lower()
+        if not reg_dom:
+            return False
+        if reg_dom in TRUSTED_DOMAINS:
             return True
-    return False
+        for b_data in BRAND_CATALOG.values():
+            if reg_dom in b_data["official_registered_domains"]:
+                return True
+        return False
+    except Exception:
+        return False
 
 def heuristic_email_score(text: str) -> tuple[float, list[str]]:
     text_lower = text.lower()
@@ -175,72 +200,44 @@ def heuristic_email_score(text: str) -> tuple[float, list[str]]:
     return min(score, 98.0), flags
 
 # -------------------------------------------------------------
-# 1. URL Structural & Lexical Scanner Endpoint (Using url_model.pkl)
+# 1. URL Structural & Lexical Scanner Endpoint (Using url_model.pkl + PSL Brand Engine)
 # -------------------------------------------------------------
 @app.post("/api/predict-url")
 def predict_url(payload: URLRequest):
-    """URL Machine Learning (XGBoost) + Structural Analysis endpoint."""
+    """
+    URL Machine Learning (XGBoost) + PSL Domain Analysis + Brand Impersonation Scanner.
+    Synthesizes model probability with explainable structural indicators and brand intelligence.
+    """
     if not payload.url or payload.url.strip() == "":
         raise HTTPException(status_code=400, detail="URL cannot be empty.")
 
-    # 1. Extract feature vector
-    features = extract_url_features(payload.url)
+    clean_url = payload.url.strip()
+
+    # 1. Extract feature vector for ML model
+    features = extract_url_features(clean_url)
     raw = features[0] if (isinstance(features, list) and isinstance(features[0], list)) else features
-
-    # Contextual heuristic explanations
-    reasons = []
-    if raw[1] == 1:
-        reasons.append("Contains '@' symbol used in URL obfuscation.")
-    if raw[2] == 1:
-        reasons.append("Uses raw IP address instead of a valid domain name.")
-    if raw[3] > 3:
-        reasons.append(f"Abnormal number of subdomains detected ({raw[3]} dots).")
-    if raw[6] == 1:
-        reasons.append("Contains suspicious credential-harvesting keywords (e.g. login, verify, banking).")
-    if raw[5] == 0:
-        reasons.append("Insecure HTTP protocol (missing SSL/TLS certificate).")
-
-    # Fast-path for verified trusted top domains (avoids false positives on safe authority sites)
-    if is_trusted_legitimate_domain(payload.url) and raw[1] == 0 and raw[2] == 0 and raw[6] == 0:
-        risk_percentage = 2.5 if raw[5] == 1 else 15.0
-        verdict = "Safe / Legitimate"
-        flags = ["Verified authoritative domain with standard protocol security."]
-        return {
-            "target_url": payload.url,
-            "risk_percentage": risk_percentage,
-            "verdict": verdict,
-            "flags": flags
-        }
 
     # 2. Model Inference
     url_model = get_url_model()
-    risk_percentage = None
+    model_prob = None
     if url_model is not None:
         try:
             prob = url_model.predict_proba([raw])[0][1] * 100
-            risk_percentage = round(float(prob), 2)
+            model_prob = round(float(prob), 2)
         except Exception as e:
             print(f"Inference error with URL model: {e}")
-            risk_percentage = None
+            model_prob = None
 
-    if risk_percentage is None:
-        # Fallback heuristic calculation if model file is missing or failed
-        score = 10.0
-        if raw[1] == 1: score += 35
-        if raw[2] == 1: score += 40
-        if raw[3] > 3:  score += 20
-        if raw[6] == 1: score += 25
-        if raw[5] == 0: score += 15
-        risk_percentage = min(score, 99.0)
+    # 3. Comprehensive Domain, Brand Impersonation & Structural Assessment
+    try:
+        result = evaluate_url_security(clean_url, ml_model_probability=model_prob)
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(f"URL analysis error: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid URL structure: {e}")
 
-    verdict = "Phishing / Malicious" if risk_percentage >= 50.0 else "Safe / Legitimate"
-
-    return {
-        "target_url": payload.url,
-        "risk_percentage": risk_percentage,
-        "verdict": verdict,
-        "flags": reasons if reasons else ["No high-risk structural anomalies detected."]
-    }
+    return result
 
 # -------------------------------------------------------------
 # 2. Email NLP Semantic Scanner Endpoint

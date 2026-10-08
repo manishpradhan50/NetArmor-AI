@@ -136,11 +136,61 @@
             <div class="result-score-wrap">
               <span class="score-label">Risk Probability</span>
               <span class="score-display" id="urlScore">0%</span>
+              <span class="confidence-tag" id="urlConfidence"><i class="fa-solid fa-gauge-high"></i> <span>Estimated Threat Risk</span></span>
             </div>
             <span id="urlBadge" class="badge">Checking</span>
           </div>
+
+          <!-- Domain Intelligence Meta Grid -->
+          <div class="domain-meta-grid">
+            <div class="meta-card">
+              <div class="meta-title"><i class="fa-solid fa-server"></i> Extracted Hostname</div>
+              <div class="meta-val" id="urlHostname">--</div>
+            </div>
+            <div class="meta-card">
+              <div class="meta-title"><i class="fa-solid fa-sitemap"></i> Registered Domain (PSL)</div>
+              <div class="meta-val" id="urlRegisteredDomain">--</div>
+            </div>
+            <div class="meta-card">
+              <div class="meta-title"><i class="fa-solid fa-diagram-project"></i> Subdomain</div>
+              <div class="meta-val" id="urlSubdomain">None</div>
+            </div>
+            <div class="meta-card">
+              <div class="meta-title"><i class="fa-solid fa-id-badge"></i> Brand Association</div>
+              <div class="meta-val" id="urlBrandStatus">None</div>
+            </div>
+          </div>
+
+          <!-- 4-Vector Categorized Audit Grid -->
+          <div class="vector-audit-grid">
+            <div class="vector-audit-card">
+              <div class="vector-audit-header"><i class="fa-solid fa-network-wired"></i> Domain Structure</div>
+              <ul class="vector-audit-list" id="urlAuditStructure">
+                <li>Analyzing syntax and protocols...</li>
+              </ul>
+            </div>
+            <div class="vector-audit-card">
+              <div class="vector-audit-header"><i class="fa-solid fa-user-ninja"></i> Brand Impersonation</div>
+              <ul class="vector-audit-list" id="urlAuditBrand">
+                <li>Scanning trademark deception...</li>
+              </ul>
+            </div>
+            <div class="vector-audit-card">
+              <div class="vector-audit-header"><i class="fa-solid fa-brain"></i> Model Prediction</div>
+              <ul class="vector-audit-list" id="urlAuditModel">
+                <li>Evaluating lexical vector...</li>
+              </ul>
+            </div>
+            <div class="vector-audit-card">
+              <div class="vector-audit-header"><i class="fa-solid fa-shield-halved"></i> Reputation Intel</div>
+              <ul class="vector-audit-list" id="urlAuditReputation">
+                <li>Querying authoritative registry...</li>
+              </ul>
+            </div>
+          </div>
+
           <div class="reasons-box">
-            <strong>Detection Flags &amp; Vector Breakdown:</strong>
+            <strong>Detection Flags &amp; Structural Breakdown:</strong>
             <ul id="urlFlags"></ul>
           </div>
         </div>
