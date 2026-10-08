@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NetArmor AI — Security Operations Admin Console (SOC)</title>
   <link rel="icon" type="image/png" href="images/logo.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="dashboard.css">
 
   <!-- Google Firebase Compat SDK -->
@@ -16,6 +17,7 @@
 
 <body>
   <div class="grid"></div>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
   <div class="app-shell">
     <!-- =========================================================
@@ -27,56 +29,61 @@
           <img src="images/logo.png" alt="NetArmor Logo" style="width: 26px; height: 26px; object-fit: contain;">
           <span>NetArmor <b>AI</b></span>
         </a>
-        <span class="brand-badge" style="background: rgba(239, 68, 68, 0.15); color: #ff6b81; border-color: rgba(239, 68, 68, 0.35);">
-          🛡️ SOC LEAD
-        </span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="brand-badge" style="background: rgba(239, 68, 68, 0.15); color: #ff6b81; border-color: rgba(239, 68, 68, 0.35);">
+            <i class="fa-solid fa-shield-halved"></i> SOC LEAD
+          </span>
+          <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close navigation">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
       </div>
 
       <nav class="sidebar-nav">
         <div class="nav-section-label">SOC Operations</div>
         <button class="nav-item active" data-tab="overview">
-          <span class="icon">📊</span>
+          <span class="icon"><i class="fa-solid fa-gauge-high"></i></span>
           <span>Command Center</span>
         </button>
 
         <button class="nav-item" data-tab="complaints">
-          <span class="icon">🚨</span>
+          <span class="icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
           <span>Complaints Triage</span>
           <span class="counter-badge threat-alert" id="sidebarComplaintCount">0</span>
         </button>
 
         <button class="nav-item" data-tab="tickets">
-          <span class="icon">🎫</span>
+          <span class="icon"><i class="fa-solid fa-ticket"></i></span>
           <span>Support Desk</span>
           <span class="counter-badge" id="sidebarTicketCount">0</span>
         </button>
 
         <button class="nav-item" data-tab="telemetry">
-          <span class="icon">🌐</span>
+          <span class="icon"><i class="fa-solid fa-network-wired"></i></span>
           <span>Global Telemetry</span>
           <span class="counter-badge" id="sidebarScanCount">0</span>
         </button>
 
         <div class="nav-section-label">Administration</div>
         <button class="nav-item" data-tab="users">
-          <span class="icon">👥</span>
+          <span class="icon"><i class="fa-solid fa-users"></i></span>
           <span>User Directory</span>
           <span class="counter-badge" id="sidebarUserCount">0</span>
         </button>
 
         <button class="nav-item" data-tab="feedback">
-          <span class="icon">⭐</span>
+          <span class="icon"><i class="fa-solid fa-comments"></i></span>
           <span>Feedback Analytics</span>
         </button>
 
         <button class="nav-item" data-tab="health">
-          <span class="icon">⚡</span>
+          <span class="icon"><i class="fa-solid fa-server"></i></span>
           <span>System &amp; ML Health</span>
         </button>
 
         <div class="nav-section-label">Switch Workspace</div>
         <a href="dashboard.html" class="nav-item" style="color: var(--cyan);">
-          <span class="icon">🖥️</span>
+          <span class="icon"><i class="fa-solid fa-desktop"></i></span>
           <span>Analyst Dashboard →</span>
         </a>
       </nav>
@@ -91,8 +98,8 @@
               <span style="color: #ff88a3;">Security Associate</span>
             </div>
           </div>
-          <button class="icon-button btn-sm" id="adminSidebarLogoutBtn" title="Logout" style="width: 30px; height: 30px;">
-            ⏻
+          <button class="icon-button btn-sm" id="adminSidebarLogoutBtn" title="Logout" style="width: 32px; height: 32px;">
+            <i class="fa-solid fa-right-from-bracket"></i>
           </button>
         </div>
       </div>
@@ -105,7 +112,9 @@
       <!-- TOP NAVIGATION BAR -->
       <header class="topbar">
         <div class="topbar-left">
-          <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">☰</button>
+          <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">
+            <i class="fa-solid fa-bars"></i>
+          </button>
           <div class="breadcrumb-view">
             <small>SOC Console</small> / <span id="currentViewTitle">Command Center</span>
           </div>
@@ -113,21 +122,21 @@
 
         <div class="topbar-right">
           <a href="dashboard.html" class="btn btn-secondary btn-sm" title="Switch to user view">
-            👤 User Console
+            <i class="fa-solid fa-user"></i> <span class="btn-text-mobile-hide">User Console</span>
           </a>
 
           <button class="btn btn-secondary btn-sm" id="adminChangeOwnPasswordBtn">
-            🔑 Change Password
+            <i class="fa-solid fa-key"></i> <span class="btn-text-mobile-hide">Change Password</span>
           </button>
 
           <a href="detect.html" class="btn btn-primary btn-sm">
-            🔍 Launch Scanner
+            <i class="fa-solid fa-plus"></i> <span class="btn-text-mobile-hide">Launch Scanner</span>
           </a>
 
           <!-- Notifications Bell -->
           <div class="notification-btn-wrapper">
             <button class="icon-button" id="notifBellBtn" aria-label="Notifications">
-              🔔
+              <i class="fa-solid fa-bell"></i>
               <span class="notif-badge-pill" id="notifCountPill" style="display: none;">0</span>
             </button>
 
@@ -144,7 +153,7 @@
           </div>
 
           <button class="btn btn-secondary btn-sm" id="logout">
-            Logout
+            <i class="fa-solid fa-right-from-bracket"></i> <span class="btn-text-mobile-hide">Logout</span>
           </button>
         </div>
       </header>
@@ -168,10 +177,10 @@
             </div>
             <div class="banner-actions">
               <button class="btn btn-primary" id="refreshAllBtn">
-                ↻ Refresh Global Telemetry
+                <i class="fa-solid fa-arrows-rotate"></i> Refresh Global Telemetry
               </button>
               <button class="btn btn-secondary" onclick="switchTab('complaints')">
-                🚨 Case Triage Desk
+                <i class="fa-solid fa-triangle-exclamation"></i> Case Triage Desk
               </button>
             </div>
           </div>
@@ -181,7 +190,7 @@
             <div class="kpi-card">
               <div class="kpi-top">
                 <span class="kpi-label">Registered Users</span>
-                <span class="kpi-icon-pill" style="color: var(--cyan);">👥</span>
+                <span class="kpi-icon-pill" style="color: var(--cyan);"><i class="fa-solid fa-users"></i></span>
               </div>
               <h3 class="kpi-value" id="users">0</h3>
               <p class="kpi-subtext">Active enrolled analysts</p>
@@ -190,7 +199,7 @@
             <div class="kpi-card">
               <div class="kpi-top">
                 <span class="kpi-label">Total Global Scans</span>
-                <span class="kpi-icon-pill">🌐</span>
+                <span class="kpi-icon-pill"><i class="fa-solid fa-globe"></i></span>
               </div>
               <h3 class="kpi-value" id="total">0</h3>
               <p class="kpi-subtext">Platform-wide evaluations</p>
@@ -199,7 +208,7 @@
             <div class="kpi-card">
               <div class="kpi-top">
                 <span class="kpi-label">Threats Flagged</span>
-                <span class="kpi-icon-pill" style="color: var(--red);">🚨</span>
+                <span class="kpi-icon-pill" style="color: var(--red);"><i class="fa-solid fa-ban"></i></span>
               </div>
               <h3 class="kpi-value" id="threats" style="color: var(--red);">0</h3>
               <p class="kpi-subtext">Malicious vectors caught</p>
@@ -208,7 +217,7 @@
             <div class="kpi-card">
               <div class="kpi-top">
                 <span class="kpi-label">Global Threat Rate</span>
-                <span class="kpi-icon-pill">⚖️</span>
+                <span class="kpi-icon-pill"><i class="fa-solid fa-chart-line"></i></span>
               </div>
               <h3 class="kpi-value" id="rate">0%</h3>
               <p class="kpi-subtext">Ratio across all attacks</p>
@@ -217,7 +226,7 @@
             <div class="kpi-card">
               <div class="kpi-top">
                 <span class="kpi-label">Cyber Complaints</span>
-                <span class="kpi-icon-pill" style="color: var(--amber);">🚨</span>
+                <span class="kpi-icon-pill" style="color: var(--amber);"><i class="fa-solid fa-triangle-exclamation"></i></span>
               </div>
               <h3 class="kpi-value" id="kpiComplaints" style="color: var(--amber);">0</h3>
               <p class="kpi-subtext">Incidents filed by users</p>
@@ -226,7 +235,7 @@
             <div class="kpi-card">
               <div class="kpi-top">
                 <span class="kpi-label">Support Tickets</span>
-                <span class="kpi-icon-pill" style="color: var(--purple);">🎫</span>
+                <span class="kpi-icon-pill" style="color: var(--purple);"><i class="fa-solid fa-ticket"></i></span>
               </div>
               <h3 class="kpi-value" id="kpiTickets" style="color: var(--purple);">0</h3>
               <p class="kpi-subtext">Open customer inquiries</p>
@@ -234,7 +243,7 @@
           </div>
 
           <!-- TWO-COLUMN SECTION -->
-          <div style="display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr); gap: 20px;">
+          <div class="two-col-grid">
             <!-- RECENT GLOBAL THREAT SCANS -->
             <div class="panel">
               <div class="panel-header-flex">
@@ -281,7 +290,7 @@
                 <div style="display: flex; flex-direction: column; gap: 10px;">
                   <div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px;">
-                      <span>🌐 URL Structural Inspection</span>
+                      <span><i class="fa-solid fa-globe" style="color: var(--cyan); margin-right: 5px;"></i> URL Structural Inspection</span>
                       <strong id="breakdownUrl">0</strong>
                     </div>
                     <div style="height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
@@ -291,7 +300,7 @@
 
                   <div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px;">
-                      <span>✉️ Email NLP Phishing</span>
+                      <span><i class="fa-solid fa-envelope" style="color: var(--green); margin-right: 5px;"></i> Email NLP Phishing</span>
                       <strong id="breakdownEmail">0</strong>
                     </div>
                     <div style="height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
@@ -301,7 +310,7 @@
 
                   <div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px;">
-                      <span>💬 SMS Smishing Vectors</span>
+                      <span><i class="fa-solid fa-comment-sms" style="color: var(--amber); margin-right: 5px;"></i> SMS Smishing Vectors</span>
                       <strong id="breakdownSms">0</strong>
                     </div>
                     <div style="height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
@@ -311,7 +320,7 @@
 
                   <div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px;">
-                      <span>📄 PDF Document Malicious JS</span>
+                      <span><i class="fa-solid fa-file-lines" style="color: var(--purple); margin-right: 5px;"></i> PDF Document Malicious JS</span>
                       <strong id="breakdownPdf">0</strong>
                     </div>
                     <div style="height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
@@ -333,13 +342,13 @@
               <small>INCIDENT RESPONSE MANAGEMENT</small>
               <h2>Cyber Crime &amp; Fraud Complaints Desk</h2>
             </div>
-            <button class="btn btn-secondary btn-sm" id="refreshAdminComplaintsBtn">↻ Refresh Incidents</button>
+            <button class="btn btn-secondary btn-sm" id="refreshAdminComplaintsBtn"><i class="fa-solid fa-arrows-rotate"></i> Refresh Incidents</button>
           </div>
 
           <div class="panel">
             <div class="filter-bar">
               <div class="search-input-box">
-                <span class="icon">🔍</span>
+                <span class="icon"><i class="fa-solid fa-magnifying-glass"></i></span>
                 <input type="text" id="adminComplaintSearch" placeholder="Search by Complaint ID, Title, User email, or UTR/Ref...">
               </div>
 
@@ -354,13 +363,13 @@
 
               <select class="filter-select" id="adminComplaintPriorityFilter">
                 <option value="all">All Priorities</option>
-                <option value="Critical">⚡ Critical</option>
-                <option value="High">🔴 High</option>
-                <option value="Medium">🟠 Medium</option>
-                <option value="Low">🔵 Low</option>
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
               </select>
 
-              <button class="btn btn-primary btn-sm" id="exportComplaintsBtn">📥 Export CSV</button>
+              <button class="btn btn-primary btn-sm" id="exportComplaintsBtn"><i class="fa-solid fa-file-arrow-down"></i> Export CSV</button>
             </div>
 
             <div class="table-responsive">
@@ -394,13 +403,13 @@
               <small>CUSTOMER CARE DISPATCH</small>
               <h2>Support Tickets Resolution Desk</h2>
             </div>
-            <button class="btn btn-secondary btn-sm" id="refreshAdminTicketsBtn">↻ Refresh Tickets</button>
+            <button class="btn btn-secondary btn-sm" id="refreshAdminTicketsBtn"><i class="fa-solid fa-arrows-rotate"></i> Refresh Tickets</button>
           </div>
 
           <div class="panel">
             <div class="filter-bar">
               <div class="search-input-box">
-                <span class="icon">🔍</span>
+                <span class="icon"><i class="fa-solid fa-magnifying-glass"></i></span>
                 <input type="text" id="adminTicketSearch" placeholder="Search by Ticket ID, Subject, or User email...">
               </div>
 
@@ -415,10 +424,10 @@
 
               <select class="filter-select" id="adminTicketStatusFilter">
                 <option value="all">All Statuses</option>
-                <option value="Open">🟢 Open</option>
-                <option value="In Progress">⚙️ In Progress</option>
-                <option value="Resolved">✅ Resolved</option>
-                <option value="Closed">📁 Closed</option>
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+                <option value="Closed">Closed</option>
               </select>
             </div>
 
@@ -453,31 +462,31 @@
               <small>CROSS-PLATFORM LOGS</small>
               <h2>Global Threat Telemetry Feed</h2>
             </div>
-            <button class="btn btn-primary btn-sm" id="exportTelemetryBtn">📥 Export Telemetry CSV</button>
+            <button class="btn btn-primary btn-sm" id="exportTelemetryBtn"><i class="fa-solid fa-file-arrow-down"></i> Export Telemetry CSV</button>
           </div>
 
           <div class="panel">
             <div class="filter-bar">
               <div class="search-input-box">
-                <span class="icon">🔍</span>
+                <span class="icon"><i class="fa-solid fa-magnifying-glass"></i></span>
                 <input type="text" id="adminScanSearch" placeholder="Search target payload, URL, or operator username...">
               </div>
 
               <select class="filter-select" id="adminScanVectorFilter">
                 <option value="all">All Vectors</option>
-                <option value="url">🌐 URLs</option>
-                <option value="email">✉️ Emails</option>
-                <option value="message">💬 SMS / Messages</option>
-                <option value="document">📄 PDF Documents</option>
+                <option value="url">URLs</option>
+                <option value="email">Emails</option>
+                <option value="message">SMS / Messages</option>
+                <option value="document">PDF Documents</option>
               </select>
 
               <select class="filter-select" id="adminScanResultFilter">
                 <option value="all">All Verdicts</option>
-                <option value="Threat">🚨 Threats Only</option>
-                <option value="Safe">🛡️ Safe Only</option>
+                <option value="Threat">Threats Only</option>
+                <option value="Safe">Safe Only</option>
               </select>
 
-              <button class="btn btn-secondary btn-sm" id="refreshAdminScansBtn">↻ Refresh</button>
+              <button class="btn btn-secondary btn-sm" id="refreshAdminScansBtn"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
             </div>
 
             <div class="table-responsive">
@@ -511,10 +520,10 @@
             </div>
             <div style="display: flex; gap: 8px;">
               <button class="btn btn-primary btn-sm" id="openAddUserModalBtn">
-                ＋ Add New User
+                <i class="fa-solid fa-user-plus"></i> Add New User
               </button>
               <button class="btn btn-secondary btn-sm" id="refreshUsersBtn">
-                ↻ Refresh Directory
+                <i class="fa-solid fa-arrows-rotate"></i> Refresh Directory
               </button>
             </div>
           </div>
@@ -522,14 +531,14 @@
           <div class="panel">
             <div class="filter-bar">
               <div class="search-input-box">
-                <span class="icon">🔍</span>
+                <span class="icon"><i class="fa-solid fa-magnifying-glass"></i></span>
                 <input type="text" id="userSearchInput" placeholder="Search by name, email, or username...">
               </div>
 
               <select class="filter-select" id="userRoleFilter">
                 <option value="all">All Roles</option>
-                <option value="associate">🛡️ Associates (Lead)</option>
-                <option value="user">👤 Standard Analysts</option>
+                <option value="associate">Associates (Lead)</option>
+                <option value="user">Standard Analysts</option>
               </select>
             </div>
 
@@ -561,14 +570,16 @@
               <small>USER EXPERIENCE ANALYTICS</small>
               <h2>Platform Feedback &amp; Ratings</h2>
             </div>
-            <button class="btn btn-secondary btn-sm" id="refreshFeedbackBtn">↻ Refresh Feedback</button>
+            <button class="btn btn-secondary btn-sm" id="refreshFeedbackBtn"><i class="fa-solid fa-arrows-rotate"></i> Refresh Feedback</button>
           </div>
 
-          <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 2fr); gap: 20px;">
+          <div class="two-col-grid-even">
             <div class="panel" style="text-align: center;">
               <small style="color: var(--amber); font-weight: 800; letter-spacing: 1px;">AVERAGE SATISFACTION</small>
               <h2 style="font-size: 3rem; margin: 12px 0 4px; color: #facc15;" id="avgRatingDisplay">5.0</h2>
-              <div style="color: #facc15; font-size: 1.4rem; margin-bottom: 8px;">★★★★★</div>
+              <div style="color: #facc15; font-size: 1.15rem; margin-bottom: 8px; display: flex; justify-content: center; gap: 4px;">
+                <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+              </div>
               <p style="font-size: 0.8rem; color: var(--muted); margin: 0;">Based on submitted analyst reviews</p>
             </div>
 
@@ -590,14 +601,14 @@
               <small>INFRASTRUCTURE STATUS</small>
               <h2>System Architecture &amp; Pipeline Health</h2>
             </div>
-            <button class="btn btn-primary btn-sm" id="pingHealthBtn">⚡ Ping Backend Health</button>
+            <button class="btn btn-primary btn-sm" id="pingHealthBtn"><i class="fa-solid fa-bolt"></i> Ping Backend Health</button>
           </div>
 
           <div class="panel">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
               <div class="helpline-card">
                 <div class="helpline-top">
-                  <div class="helpline-icon" style="background: rgba(0,255,136,0.12); color: var(--green);">⚡</div>
+                  <div class="helpline-icon" style="background: rgba(0,255,136,0.12); color: var(--green);"><i class="fa-solid fa-bolt"></i></div>
                   <h4 class="helpline-title">FastAPI Backend Service</h4>
                 </div>
                 <div style="font-size: 1.2rem; font-weight: 900; color: var(--green); margin: 6px 0;" id="backendStatusVal">ONLINE</div>
@@ -606,7 +617,7 @@
 
               <div class="helpline-card">
                 <div class="helpline-top">
-                  <div class="helpline-icon" style="background: rgba(56,189,248,0.12); color: var(--cyan);">🔥</div>
+                  <div class="helpline-icon" style="background: rgba(56,189,248,0.12); color: var(--cyan);"><i class="fa-solid fa-database"></i></div>
                   <h4 class="helpline-title">Firebase Cloud Firestore</h4>
                 </div>
                 <div style="font-size: 1.2rem; font-weight: 900; color: var(--cyan); margin: 6px 0;">CONNECTED</div>
@@ -615,7 +626,7 @@
 
               <div class="helpline-card">
                 <div class="helpline-top">
-                  <div class="helpline-icon" style="background: rgba(168,85,247,0.12); color: var(--purple);">🧠</div>
+                  <div class="helpline-icon" style="background: rgba(168,85,247,0.12); color: var(--purple);"><i class="fa-solid fa-brain"></i></div>
                   <h4 class="helpline-title">XGBoost &amp; NLP Models</h4>
                 </div>
                 <div style="font-size: 1.2rem; font-weight: 900; color: var(--purple); margin: 6px 0;">OPERATIONAL</div>
@@ -624,7 +635,7 @@
 
               <div class="helpline-card">
                 <div class="helpline-top">
-                  <div class="helpline-icon" style="background: rgba(245,158,11,0.12); color: var(--amber);">🤖</div>
+                  <div class="helpline-icon" style="background: rgba(245,158,11,0.12); color: var(--amber);"><i class="fa-solid fa-robot"></i></div>
                   <h4 class="helpline-title">ArmorBot AI Assistant</h4>
                 </div>
                 <div style="font-size: 1.2rem; font-weight: 900; color: var(--amber); margin: 6px 0;">READY</div>
@@ -644,8 +655,8 @@
   <div class="modal-backdrop" id="triageModal">
     <div class="modal-card">
       <div class="modal-header">
-        <h3 id="triageModalTitle">🚨 Triage Cyber Crime Incident</h3>
-        <button class="modal-close-btn" onclick="closeModal('triageModal')">✕</button>
+        <h3 id="triageModalTitle"><i class="fa-solid fa-triangle-exclamation" style="color: var(--amber);"></i> Triage Cyber Crime Incident</h3>
+        <button class="modal-close-btn" onclick="closeModal('triageModal')"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <form id="triageForm">
@@ -691,7 +702,7 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeModal('triageModal')">Cancel</button>
           <button type="submit" class="btn btn-primary" id="saveTriageBtn">
-            💾 Update Incident Status
+            <i class="fa-solid fa-floppy-disk"></i> Update Incident Status
           </button>
         </div>
       </form>
@@ -699,13 +710,13 @@
   </div>
 
   <!-- =========================================================
-       MODAL 2: MANAGE SUPPORT TICKET
+       MODAL 2: MANAGE SUPPORT TICKET (FULL DETAIL & THREAD)
        ========================================================= -->
   <div class="modal-backdrop" id="manageTicketModal">
-    <div class="modal-card">
+    <div class="modal-card" style="max-width: 740px;">
       <div class="modal-header">
-        <h3 id="manageTicketTitle">🎫 Resolve Support Ticket</h3>
-        <button class="modal-close-btn" onclick="closeModal('manageTicketModal')">✕</button>
+        <h3 id="manageTicketTitle"><i class="fa-solid fa-headset" style="color: var(--cyan);"></i> Resolve Support Ticket</h3>
+        <button class="modal-close-btn" onclick="closeModal('manageTicketModal')"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <form id="manageTicketForm">
@@ -714,15 +725,63 @@
           <input type="hidden" id="manageTicketUserId">
           <input type="hidden" id="manageTicketIdVal">
 
-          <div style="background: rgba(255,255,255,0.03); padding: 14px; border-radius: 10px; border: 1px solid var(--line-subtle); margin-bottom: 16px;">
-            <div style="font-weight: 700; color: #fff; margin-bottom: 4px;" id="manageTicketSubjectText">—</div>
-            <div style="font-size: 0.78rem; color: var(--muted);" id="manageTicketUserMeta">—</div>
-            <div style="margin-top: 10px; font-size: 0.82rem; color: #dff5ec; background: rgba(0,0,0,0.25); padding: 10px; border-radius: 8px;" id="manageTicketMessageText">—</div>
+          <!-- TICKET METADATA OVERVIEW -->
+          <div style="background: rgba(255,255,255,0.03); padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line-subtle); margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px;">
+              <div>
+                <span style="font-size: 0.72rem; color: var(--cyan); font-weight: 800; letter-spacing: 0.8px;">TICKET RECORD</span>
+                <h4 style="font-size: 1.1rem; color: #fff; margin: 2px 0 0;" id="manageTicketSubjectText">—</h4>
+              </div>
+              <div style="display: flex; gap: 6px; align-items: center;" id="manageTicketBadgesArea">
+                <span id="manageTicketPriorityBadge" class="badge medium">—</span>
+                <span id="manageTicketStatusBadge" class="badge submitted">—</span>
+              </div>
+            </div>
+
+            <div class="ticket-detail-grid" style="margin-top: 10px;">
+              <div class="ticket-meta-chip">
+                <span class="meta-label">Ticket ID</span>
+                <span class="meta-value" id="manageTicketIdDisplay" style="color: var(--cyan);">—</span>
+              </div>
+              <div class="ticket-meta-chip">
+                <span class="meta-label">User Email</span>
+                <span class="meta-value" id="manageTicketUserEmailDisplay" style="color: #a7f3d0;">—</span>
+              </div>
+              <div class="ticket-meta-chip">
+                <span class="meta-label">Category</span>
+                <span class="meta-value" id="manageTicketCategoryDisplay">—</span>
+              </div>
+              <div class="ticket-meta-chip">
+                <span class="meta-label">Created At</span>
+                <span class="meta-value" id="manageTicketCreatedDisplay">—</span>
+              </div>
+              <div class="ticket-meta-chip">
+                <span class="meta-label">Last Updated</span>
+                <span class="meta-value" id="manageTicketUpdatedDisplay">—</span>
+              </div>
+            </div>
+
+            <!-- INQUIRY DESCRIPTION -->
+            <div style="margin-top: 14px;">
+              <div style="font-size: 0.74rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px;">User Inquiry / Description:</div>
+              <div class="ticket-description-box" id="manageTicketMessageText">—</div>
+            </div>
           </div>
 
+          <!-- FULL CONVERSATION THREAD -->
+          <div style="margin-bottom: 16px;">
+            <h4 style="font-size: 0.92rem; margin: 0 0 10px; color: #fff; display: flex; align-items: center; gap: 7px;">
+              <i class="fa-solid fa-comments" style="color: var(--cyan);"></i> Conversation History &amp; Replies
+            </h4>
+            <div class="conversation-thread" id="manageTicketConversationThread" style="max-height: 240px; overflow-y: auto;">
+              <div class="empty" style="padding: 12px !important;">No message exchanges recorded yet.</div>
+            </div>
+          </div>
+
+          <!-- RESOLUTION & RESPONSE CONTROLS -->
           <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Ticket Status</label>
+            <div class="form-group full-width">
+              <label class="form-label">Update Ticket Status</label>
               <select class="form-select" id="manageTicketStatusSelect" required>
                 <option value="Open">Open</option>
                 <option value="In Progress">In Progress</option>
@@ -732,8 +791,8 @@
             </div>
 
             <div class="form-group full-width">
-              <label class="form-label">Resolution / Staff Response</label>
-              <textarea class="form-textarea" id="manageTicketStaffNote" placeholder="Explain the fix or response provided to the analyst..." required></textarea>
+              <label class="form-label">Official SOC Response / Reply (Sent to Analyst)</label>
+              <textarea class="form-textarea" id="manageTicketStaffNote" placeholder="Type official response, troubleshooting instructions, or resolution notes to the user..." style="min-height: 90px;"></textarea>
             </div>
           </div>
         </div>
@@ -741,7 +800,7 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeModal('manageTicketModal')">Cancel</button>
           <button type="submit" class="btn btn-primary" id="saveTicketBtn">
-            💾 Update Ticket
+            <i class="fa-solid fa-paper-plane"></i> Send Reply &amp; Update Status
           </button>
         </div>
       </form>
@@ -754,8 +813,8 @@
   <div class="modal-backdrop" id="roleModal">
     <div class="modal-card" style="max-width: 480px;">
       <div class="modal-header">
-        <h3>👥 Modify User Access Role</h3>
-        <button class="modal-close-btn" onclick="closeModal('roleModal')">✕</button>
+        <h3><i class="fa-solid fa-user-shield" style="color: var(--green);"></i> Modify User Access Role</h3>
+        <button class="modal-close-btn" onclick="closeModal('roleModal')"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <form id="roleForm">
@@ -783,7 +842,7 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeModal('roleModal')">Cancel</button>
           <button type="submit" class="btn btn-primary" id="saveRoleBtn">
-            Save Permissions
+            <i class="fa-solid fa-floppy-disk"></i> Save Permissions
           </button>
         </div>
       </form>
@@ -796,8 +855,8 @@
   <div class="modal-backdrop" id="addUserModal">
     <div class="modal-card" style="max-width: 540px;">
       <div class="modal-header">
-        <h3>👤 Enroll New User Account</h3>
-        <button class="modal-close-btn" onclick="closeModal('addUserModal')">✕</button>
+        <h3><i class="fa-solid fa-user-plus" style="color: var(--cyan);"></i> Enroll New User Account</h3>
+        <button class="modal-close-btn" onclick="closeModal('addUserModal')"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <form id="addUserForm">
@@ -826,15 +885,15 @@
               <label class="form-label">Initial Password</label>
               <div style="position: relative;">
                 <input type="password" class="form-input" id="newPassword" placeholder="Minimum 8 characters" minlength="8" required style="padding-right: 40px;">
-                <button type="button" id="toggleNewPasswordBtn" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--muted); cursor: pointer; padding: 0; font-size: 1rem;">👁</button>
+                <button type="button" id="toggleNewPasswordBtn" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--muted); cursor: pointer; padding: 0; font-size: 1rem;"><i class="fa-solid fa-eye"></i></button>
               </div>
             </div>
 
             <div class="form-group full-width">
               <label class="form-label">Platform Access Role</label>
               <select class="form-select" id="newRoleSelect" required>
-                <option value="user">👤 Standard User (Security Analyst)</option>
-                <option value="associate">🛡️ Associate (Security Lead / SOC Access)</option>
+                <option value="user">Standard User (Security Analyst)</option>
+                <option value="associate">Associate (Security Lead / SOC Access)</option>
               </select>
             </div>
           </div>
@@ -843,7 +902,7 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeModal('addUserModal')">Cancel</button>
           <button type="submit" class="btn btn-primary" id="submitAddUserBtn">
-            🚀 Create User Account
+            <i class="fa-solid fa-user-check"></i> Create User Account
           </button>
         </div>
       </form>
@@ -856,8 +915,8 @@
   <div class="modal-backdrop" id="changePasswordModal">
     <div class="modal-card" style="max-width: 500px;">
       <div class="modal-header">
-        <h3 id="pwdModalTitle">🔑 User Password Management</h3>
-        <button class="modal-close-btn" onclick="closeModal('changePasswordModal')">✕</button>
+        <h3 id="pwdModalTitle"><i class="fa-solid fa-key" style="color: var(--amber);"></i> User Password Management</h3>
+        <button class="modal-close-btn" onclick="closeModal('changePasswordModal')"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <div class="modal-body">
@@ -877,14 +936,26 @@
           </p>
           <div class="form-group">
             <label class="form-label">New Password</label>
-            <input type="password" class="form-input" id="adminSelfNewPwd" minlength="8" placeholder="Minimum 8 characters" required>
+            <div class="password-input-wrap">
+              <i class="fa-solid fa-key input-lead-icon"></i>
+              <input type="password" class="form-input has-lead-icon" id="adminSelfNewPwd" minlength="8" placeholder="Minimum 8 characters" required>
+              <button type="button" class="password-eye-btn" data-target="adminSelfNewPwd" aria-label="Toggle new password visibility">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label">Confirm New Password</label>
-            <input type="password" class="form-input" id="adminSelfConfirmPwd" minlength="8" placeholder="Confirm password" required>
+            <div class="password-input-wrap">
+              <i class="fa-solid fa-shield-halved input-lead-icon"></i>
+              <input type="password" class="form-input has-lead-icon" id="adminSelfConfirmPwd" minlength="8" placeholder="Confirm password" required>
+              <button type="button" class="password-eye-btn" data-target="adminSelfConfirmPwd" aria-label="Toggle confirm password visibility">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
           </div>
           <button type="submit" class="btn btn-primary" id="saveSelfPwdBtn" style="width: 100%; margin-top: 6px;">
-            🔒 Update My Password Directly
+            <i class="fa-solid fa-lock"></i> Update My Password Directly
           </button>
         </form>
 
@@ -894,10 +965,10 @@
             Send a verified password-reset link to this user's registered email address. The user will be able to securely choose a new password.
           </p>
           <button type="button" class="btn btn-primary" id="sendUserResetLinkBtn" style="width: 100%; margin-bottom: 12px;">
-            📧 Send Password Reset Email Link
+            <i class="fa-solid fa-envelope"></i> Send Password Reset Email Link
           </button>
           <p style="font-size: 0.74rem; color: var(--muted); line-height: 1.4; margin: 0;">
-            ℹ️ <em>Security Note:</em> Under Firebase Authentication standards, password changes for existing accounts require cryptographic token verification via their registered email to preserve credential audit trails.
+            <i class="fa-solid fa-shield-halved" style="color: var(--cyan);"></i> <em>Security Note:</em> Under Firebase Authentication standards, password changes for existing accounts require cryptographic token verification via their registered email to preserve credential audit trails.
           </p>
         </div>
       </div>

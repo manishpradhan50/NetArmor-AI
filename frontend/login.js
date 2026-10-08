@@ -467,11 +467,11 @@ function setupPasswordToggle(inputId, buttonId) {
   button.addEventListener("click", () => {
     if (input.type === "password") {
       input.type = "text";
-      button.textContent = "🙈";
+      button.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
       button.setAttribute("aria-label", "Hide password");
     } else {
       input.type = "password";
-      button.textContent = "👁";
+      button.innerHTML = '<i class="fa-solid fa-eye"></i>';
       button.setAttribute("aria-label", "Show password");
     }
   });

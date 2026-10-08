@@ -121,6 +121,60 @@ def health_check():
     }
 
 # -------------------------------------------------------------
+# Domain Whitelist & Security Heuristics
+# -------------------------------------------------------------
+from urllib.parse import urlparse
+
+TRUSTED_DOMAINS = {
+    "google.com", "youtube.com", "facebook.com", "baidu.com", "wikipedia.org",
+    "yahoo.com", "reddit.com", "amazon.com", "twitter.com", "x.com", "instagram.com",
+    "linkedin.com", "microsoft.com", "apple.com", "netflix.com", "github.com",
+    "stackoverflow.com", "cloudflare.com", "bing.com", "office.com", "live.com",
+    "gmail.com", "outlook.com", "dropbox.com", "whatsapp.com", "telegram.org"
+}
+
+def extract_root_host(url: str) -> str:
+    parsed = urlparse(url if "://" in url else f"http://{url}")
+    host = (parsed.netloc or "").split(":")[0].lower()
+    if "@" in host:
+        host = host.split("@")[-1]
+    return host
+
+def is_trusted_legitimate_domain(url: str) -> bool:
+    host = extract_root_host(url)
+    if not host or "@" in url:
+        return False
+    for domain in TRUSTED_DOMAINS:
+        if host == domain or host.endswith("." + domain):
+            return True
+    return False
+
+def heuristic_email_score(text: str) -> tuple[float, list[str]]:
+    text_lower = text.lower()
+    score = 5.0
+    flags = []
+    
+    urgency_triggers = ["immediate action", "account suspended", "urgent", "24 hours", "unauthorized access", "terminate your account"]
+    credential_triggers = ["verify your password", "confirm your identity", "click the link below", "login immediately", "update payment"]
+    financial_triggers = ["lottery winner", "cryptocurrency prize", "wire transfer", "claim your refund", "won a gift card"]
+    
+    matched_urgency = [t for t in urgency_triggers if t in text_lower]
+    matched_cred = [t for t in credential_triggers if t in text_lower]
+    matched_fin = [t for t in financial_triggers if t in text_lower]
+    
+    if matched_urgency:
+        score += 35
+        flags.append(f"Urgency pressure tactics detected ({', '.join(matched_urgency[:2])}).")
+    if matched_cred:
+        score += 45
+        flags.append("Credential or identity harvesting phrases detected.")
+    if matched_fin:
+        score += 30
+        flags.append("Financial scam / fraudulent reward triggers detected.")
+        
+    return min(score, 98.0), flags
+
+# -------------------------------------------------------------
 # 1. URL Structural & Lexical Scanner Endpoint (Using url_model.pkl)
 # -------------------------------------------------------------
 @app.post("/api/predict-url")
@@ -133,29 +187,7 @@ def predict_url(payload: URLRequest):
     features = extract_url_features(payload.url)
     raw = features[0] if (isinstance(features, list) and isinstance(features[0], list)) else features
 
-    # 2. Model Inference
-    url_model = get_url_model()
-    if url_model is not None:
-        try:
-            prob = url_model.predict_proba([raw])[0][1] * 100
-            risk_percentage = round(float(prob), 2)
-        except Exception as e:
-            print(f"Inference error with URL model: {e}")
-            risk_percentage = None
-    else:
-        risk_percentage = None
-
-    if risk_percentage is None:
-        # Fallback heuristic calculation if model file is missing or failed
-        score = 10.0
-        if raw[1] == 1: score += 35
-        if raw[2] == 1: score += 40
-        if raw[3] > 3:  score += 20
-        if raw[6] == 1: score += 25
-        if raw[5] == 0: score += 15
-        risk_percentage = min(score, 99.0)
-
-    # 3. Contextual heuristic explanations
+    # Contextual heuristic explanations
     reasons = []
     if raw[1] == 1:
         reasons.append("Contains '@' symbol used in URL obfuscation.")
@@ -167,6 +199,39 @@ def predict_url(payload: URLRequest):
         reasons.append("Contains suspicious credential-harvesting keywords (e.g. login, verify, banking).")
     if raw[5] == 0:
         reasons.append("Insecure HTTP protocol (missing SSL/TLS certificate).")
+
+    # Fast-path for verified trusted top domains (avoids false positives on safe authority sites)
+    if is_trusted_legitimate_domain(payload.url) and raw[1] == 0 and raw[2] == 0 and raw[6] == 0:
+        risk_percentage = 2.5 if raw[5] == 1 else 15.0
+        verdict = "Safe / Legitimate"
+        flags = ["Verified authoritative domain with standard protocol security."]
+        return {
+            "target_url": payload.url,
+            "risk_percentage": risk_percentage,
+            "verdict": verdict,
+            "flags": flags
+        }
+
+    # 2. Model Inference
+    url_model = get_url_model()
+    risk_percentage = None
+    if url_model is not None:
+        try:
+            prob = url_model.predict_proba([raw])[0][1] * 100
+            risk_percentage = round(float(prob), 2)
+        except Exception as e:
+            print(f"Inference error with URL model: {e}")
+            risk_percentage = None
+
+    if risk_percentage is None:
+        # Fallback heuristic calculation if model file is missing or failed
+        score = 10.0
+        if raw[1] == 1: score += 35
+        if raw[2] == 1: score += 40
+        if raw[3] > 3:  score += 20
+        if raw[6] == 1: score += 25
+        if raw[5] == 0: score += 15
+        risk_percentage = min(score, 99.0)
 
     verdict = "Phishing / Malicious" if risk_percentage >= 50.0 else "Safe / Legitimate"
 
@@ -182,17 +247,25 @@ def predict_url(payload: URLRequest):
 # -------------------------------------------------------------
 @app.post("/api/predict-email")
 def predict_email(payload: EmailRequest):
-    """Email NLP TF-IDF + XGBoost prediction endpoint."""
-    vectorizer, email_model = get_email_model_and_vectorizer()
-    if vectorizer is None or email_model is None:
-        raise HTTPException(status_code=500, detail="Model files not found or failed to load. Check ml_pipeline/saved_models.")
-
+    """Email NLP TF-IDF + XGBoost prediction endpoint with resilient heuristic fallback."""
     if not payload.text or payload.text.strip() == "":
         raise HTTPException(status_code=400, detail="Email body text cannot be empty.")
 
-    transformed_vector = vectorizer.transform([payload.text])
-    probabilities = email_model.predict_proba(transformed_vector)[0]
-    spam_prob = round(float(probabilities[1]) * 100, 2)
+    spam_prob = None
+    vectorizer, email_model = get_email_model_and_vectorizer()
+    if vectorizer is not None and email_model is not None:
+        try:
+            transformed_vector = vectorizer.transform([payload.text])
+            probabilities = email_model.predict_proba(transformed_vector)[0]
+            spam_prob = round(float(probabilities[1]) * 100, 2)
+        except Exception as e:
+            print(f"Warning: Model inference failed for email, using heuristic fallback: {e}")
+            spam_prob = None
+
+    if spam_prob is None:
+        heuristic_score, _ = heuristic_email_score(payload.text)
+        spam_prob = round(heuristic_score, 2)
+
     verdict = "Phishing / Spam" if spam_prob >= 50.0 else "Safe / Legitimate"
 
     return {
@@ -213,12 +286,15 @@ def predict_message(payload: MessageRequest):
     url_pattern = r"(https?://[^\s]+|www\.[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/[^\s]*)"
     extracted_urls = re.findall(url_pattern, text)
 
+    nlp_prob = 10.0
     vectorizer, email_model = get_email_model_and_vectorizer()
-    if vectorizer is None or email_model is None:
-        raise HTTPException(status_code=500, detail="Model files not found or failed to load. Check ml_pipeline/saved_models.")
-
-    transformed = vectorizer.transform([text])
-    nlp_prob = float(email_model.predict_proba(transformed)[0][1] * 100)
+    if vectorizer is not None and email_model is not None:
+        try:
+            transformed = vectorizer.transform([text])
+            nlp_prob = float(email_model.predict_proba(transformed)[0][1] * 100)
+        except Exception as e:
+            print(f"Warning: Model inference failed for message: {e}")
+            nlp_prob = 10.0
 
     flags = []
     smishing_patterns = [r"\botp\b", r"\bkyc\b", r"\bblocked\b", r"\bwin\b", r"\bprize\b", r"\brefund\b", r"\burgent\b", r"\bverify\b"]
@@ -257,30 +333,35 @@ async def scan_document(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Only PDF documents are supported.")
 
     content = await file.read()
-    reader = PdfReader(io.BytesIO(content))
-
-    extracted_text = ""
-    extracted_urls = []
-    has_javascript = False
-
-    for page in reader.pages:
-        text = page.extract_text() or ""
-        extracted_text += text + " "
-
-        if "/Annots" in page:
-            try:
-                for annot in page["/Annots"]:
-                    obj = annot.get_object()
-                    if "/A" in obj and "/URI" in obj["/A"]:
-                        extracted_urls.append(obj["/A"]["/URI"])
-            except Exception:
-                pass
+    if not content.startswith(b"%PDF"):
+        raise HTTPException(status_code=400, detail="Invalid PDF file format (missing PDF magic header).")
 
     try:
-        if "/JavaScript" in reader.trailer or "/JS" in reader.trailer:
-            has_javascript = True
-    except Exception:
-        pass
+        reader = PdfReader(io.BytesIO(content))
+        extracted_text = ""
+        extracted_urls = []
+        has_javascript = False
+
+        for page in reader.pages:
+            text = page.extract_text() or ""
+            extracted_text += text + " "
+
+            if "/Annots" in page:
+                try:
+                    for annot in page["/Annots"]:
+                        obj = annot.get_object()
+                        if "/A" in obj and "/URI" in obj["/A"]:
+                            extracted_urls.append(obj["/A"]["/URI"])
+                except Exception:
+                    pass
+
+        try:
+            if "/JavaScript" in reader.trailer or "/JS" in reader.trailer:
+                has_javascript = True
+        except Exception:
+            pass
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Failed to parse PDF document. File may be encrypted or corrupted.")
 
     nlp_score = 0.0
     vectorizer, email_model = get_email_model_and_vectorizer()
@@ -369,6 +450,17 @@ async def upload_complaint_evidence(file: UploadFile = File(...)):
     content = await file.read()
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File size exceeds maximum 10MB limit.")
+
+    # Prevent disguised executable files (magic bytes security inspection)
+    if content.startswith(b"MZ") or content.startswith(b"\x7fELF"):
+        raise HTTPException(status_code=400, detail="Security violation: Executable binary files are strictly prohibited.")
+
+    if ext == ".pdf" and not content.startswith(b"%PDF"):
+        raise HTTPException(status_code=400, detail="Invalid PDF file: Missing %PDF signature.")
+    if ext == ".png" and not content.startswith(b"\x89PNG"):
+        raise HTTPException(status_code=400, detail="Invalid PNG image: Missing PNG signature.")
+    if ext in {".jpg", ".jpeg"} and not content.startswith(b"\xff\xd8"):
+        raise HTTPException(status_code=400, detail="Invalid JPEG image: Missing JPEG signature.")
 
     # Generate sanitized unique filename
     safe_basename = re.sub(r'[^a-zA-Z0-9_\.-]', '_', file.filename)

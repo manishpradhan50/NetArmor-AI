@@ -1,41 +1,125 @@
-Upgrade the existing User Dashboard into a modern, professional, production-ready dashboard. First understand the existing project structure, authentication, database, and current features before making changes. Do not break any existing functionality.
+Improve the existing website/dashboard UI and make it fully production-ready without breaking any existing functionality.
 
-Add useful features such as:
+Focus on the following areas:
 
-Customer Care / Help Center
-Raise Cyber Complaint
-Report Fraud or Suspicious Activity
-Complaint Tracking with unique complaint ID
-Complaint History and Status
-Support Ticket System
-Notifications
-User Profile & Account Settings
-Security Center
-FAQ
-Feedback
-Recent Activity
-Logout
+1. Fully Responsive Dashboard
 
-For the Cyber Complaint feature, allow users to submit complaint type, title, description, incident details, date/time, reference information, and supporting files if the current backend supports uploads. Save complaints to the database and allow users to track statuses such as Submitted, Under Review, In Progress, Resolved, and Closed.
+* The current dashboard is not responsive.
+* Make the entire dashboard work properly on desktop, tablet, and mobile.
+* Fix overflowing content, broken grids, fixed-width elements, tables, cards, buttons, forms, and navigation.
+* Make sure every section automatically adapts to different screen sizes.
+* On mobile, use a proper responsive sidebar/menu instead of squeezing the desktop layout.
+* Maintain consistent spacing, alignment, typography, and component sizing.
 
-Improve the dashboard UI with:
+2. Support Ticket System
 
-Modern sidebar/navigation
-Attractive dashboard cards
-Quick-action buttons
-Statistics cards
-Relevant icons and illustrations
-Professional typography and spacing
-Notifications and alerts
-Recent activity section
-Responsive desktop, tablet, and mobile layouts
-Loading, empty, success, and error states
-Toast messages and confirmation dialogs
+* The support ticket system currently does not display complete or proper information like the user reply and the admin reply etc.
+* Improve both the User Dashboard and Admin Dashboard.
+* Users should be able to clearly see:
 
-Make every button functional and connect new features to the existing backend/database instead of using static dummy data.
+  * Ticket ID
+  * Subject
+  * Category
+  * Description
+  * Priority
+  * Status
+  * Created date/time
+  * Last updated date/time
+  * Admin response/reply
+  * Conversation/history
+* Admins should be able to see all important ticket details in a clean layout.
+* Add clear status indicators such as Open, In Progress, Resolved, and Closed.
+* Make ticket details easy to understand and visually organized.
+* Do not remove any existing ticket functionality.
 
-Keep the design clean, professional, and visually balanced. Do not overcrowd the dashboard or add unnecessary features just for decoration.
+3. Password Change / Security UI
 
-Use the existing technology stack and reusable components wherever possible. Keep sensitive keys in environment variables, maintain proper authentication and route protection, and follow clean, maintainable coding practices.
+* Redesign the password change section completely.
+* The current design does not look professional or consistent with the rest of the website.
+* Create a modern security/settings card or page that matches the existing website's design system.
+* Include:
 
-Finally, test the major user flows and make sure the dashboard feels like a real-world production application rather than a basic student project.
+  * Current Password
+  * New Password
+  * Confirm New Password
+  * Password visibility toggle
+  * Password strength indicator
+  * Clear validation/error messages
+  * Success confirmation
+* Use proper security-related icons and professional visual hierarchy.
+* Make the section feel like a native part of the website rather than a separate/unfinished component.
+
+4. Dropdowns and Select Menus
+
+* Fix all dropdown/select components throughout the website.
+* The current dropdown text is difficult or impossible to see.
+* Ensure proper:
+
+  * Text color
+  * Background color
+  * Border
+  * Hover state
+  * Focus state
+  * Selected state
+  * Placeholder visibility
+  * Dropdown option visibility
+* Make sure dropdowns work correctly in both light/dark areas of the website.
+* Check z-index and positioning so dropdown menus are not hidden behind other components.
+* Ensure they are usable on mobile as well.
+
+5. Icons Instead of Emojis
+
+* Replace unnecessary emojis used throughout the dashboard with professional icons.
+* Prefer the icon library already used in the project.
+* If no suitable icon library exists, use a reliable icon library such as Lucide, Font Awesome, or another appropriate library.
+* Use icons consistently for:
+
+  * Dashboard
+  * Profile
+  * Users
+  * Support
+  * Tickets
+  * Security
+  * Password
+  * Settings
+  * Notifications
+  * Reports
+  * Search
+  * Edit
+  * Delete
+  * View
+  * Logout
+  * Status indicators
+* Do not use emojis where a professional UI icon would be more appropriate.
+
+6. Maintain Existing Website Design
+
+* Do not redesign the entire website unnecessarily.
+* Preserve the existing branding, color palette, typography, navigation structure, and overall visual identity.
+* Improve the UI so all new and existing sections feel like they belong to the same design system.
+* Avoid random colors, inconsistent card styles, excessive shadows, or unnecessary animations.
+* Keep the interface modern, clean, professional, and production-ready.
+
+7. UI/UX Quality
+
+* Fix inconsistent margins, padding, alignment, font sizes, button sizes, card heights, and spacing.
+* Make the dashboard visually balanced and less cluttered.
+* Ensure important actions are easy to find.
+* Add proper hover, focus, active, loading, empty, success, and error states where appropriate.
+* Make forms and tables easy to use.
+* Ensure accessibility with readable contrast, visible focus states, meaningful labels, and usable buttons.
+
+8. Important Implementation Rules
+
+* First inspect the existing project structure and understand the current components before making changes.
+* Reuse existing components and styles where possible.
+* Do not unnecessarily duplicate code.
+* Do not remove working functionality.
+* Do not replace backend/database logic unless required to fix an actual issue.
+* Keep the existing authentication, dashboard, support ticket, and user-management functionality working.
+* Make changes cleanly and maintainably.
+* Test the UI at desktop, tablet, and mobile breakpoints.
+* Check every modified component for visual consistency and responsiveness.
+
+Final goal:
+Make the existing dashboard look like a polished, modern, professional production application. The UI should be responsive, consistent, easy to navigate, visually clear, and fully usable on both desktop and mobile without breaking any existing functionality.

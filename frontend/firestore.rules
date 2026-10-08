@@ -7,81 +7,110 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Helper: Verify user has 'associate' role
-    function isAssociate() {
+    // Helper: Verify user has staff role ('associate' or 'admin')
+    function isStaff() {
       return isAuthenticated() &&
-        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'associate';
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        (
+          get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.get('role', 'user') in [
+            'associate', 'Associate', 'admin', 'Admin', 'soc_lead', 'SOC_LEAD'
+          ]
+        );
     }
 
-    // Profiles Collection
+    // 1. User Profiles Collection
     match /profiles/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAssociate());
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-      allow update: if isAuthenticated() && (
-        (request.auth.uid == userId && (
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) ||
-          request.resource.data.role == resource.data.role
-        )) ||
-        isAssociate()
-      );
-      allow delete: if isAssociate();
+      // Any authenticated user can read their own profile; staff can read all profiles
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isStaff());
+      // Users can create their own profile; staff can create profiles for newly enrolled users
+      allow create: if isAuthenticated() && (request.auth.uid == userId || isStaff());
+      // Users can update their profile; staff can update any profile (e.g. role modification)
+      allow update: if isAuthenticated() && (request.auth.uid == userId || isStaff());
+      // Only staff can delete user profiles
+      allow delete: if isStaff();
     }
 
-    // Scan History Telemetry Collection
+    // 2. Scan History Telemetry Collection
     match /scan_history/{scanId} {
+      // Users read their own scan records; staff reads all telemetry for analytics
       allow read: if isAuthenticated() && (
-        resource.data.user_id == request.auth.uid || isAssociate()
+        resource.data.user_id == request.auth.uid || isStaff()
       );
-      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
-      allow update, delete: if isAssociate();
+      // Users or staff can record scan diagnostics
+      allow create: if isAuthenticated() && (
+        request.resource.data.user_id == request.auth.uid || isStaff()
+      );
+      // Only staff can modify or purge telemetry data
+      allow update, delete: if isStaff();
     }
 
-    // Cyber Crime & Fraud Complaints Collection
+    // 3. Cyber Crime & Fraud Complaints Collection
     match /cyber_complaints/{complaintId} {
+      // Users read their own complaints; staff reads all complaints in triage queue
       allow read: if isAuthenticated() && (
-        resource.data.user_id == request.auth.uid || isAssociate()
+        resource.data.user_id == request.auth.uid || isStaff()
       );
-      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+      // Users or staff can lodge complaints
+      allow create: if isAuthenticated() && (
+        request.resource.data.user_id == request.auth.uid || isStaff()
+      );
+      // Users can update their own complaint; staff can triage, assign, and update status
       allow update: if isAuthenticated() && (
-        (resource.data.user_id == request.auth.uid && request.resource.data.user_id == request.auth.uid) ||
-        isAssociate()
+        resource.data.user_id == request.auth.uid || isStaff()
       );
-      allow delete: if isAssociate();
+      // Only staff can delete complaints
+      allow delete: if isStaff();
     }
 
-    // Support Tickets Collection
+    // 4. Support Tickets Collection
     match /support_tickets/{ticketId} {
+      // Users read their own tickets; staff reads all tickets
       allow read: if isAuthenticated() && (
-        resource.data.user_id == request.auth.uid || isAssociate()
+        resource.data.user_id == request.auth.uid || isStaff()
       );
-      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+      // Users or staff can create tickets
+      allow create: if isAuthenticated() && (
+        request.resource.data.user_id == request.auth.uid || isStaff()
+      );
+      // Users can update their tickets; staff can resolve or change ticket status
       allow update: if isAuthenticated() && (
-        (resource.data.user_id == request.auth.uid && request.resource.data.user_id == request.auth.uid) ||
-        isAssociate()
+        resource.data.user_id == request.auth.uid || isStaff()
       );
-      allow delete: if isAssociate();
+      // Only staff can close or delete tickets
+      allow delete: if isStaff();
     }
 
-    // User Feedback Collection
+    // 5. User Feedback Collection
     match /user_feedback/{feedbackId} {
+      // Users read their feedback; staff reads all feedback sentiment
       allow read: if isAuthenticated() && (
-        resource.data.user_id == request.auth.uid || isAssociate()
+        resource.data.user_id == request.auth.uid || isStaff()
       );
-      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
-      allow update, delete: if isAssociate();
+      // Users or staff can submit feedback
+      allow create: if isAuthenticated() && (
+        request.resource.data.user_id == request.auth.uid || isStaff()
+      );
+      // Only staff can update or delete feedback
+      allow update, delete: if isStaff();
     }
 
-    // User In-App Notifications Collection
+    // 6. User In-App Notifications Collection
     match /user_notifications/{notificationId} {
+      // Users read their own notifications; staff can inspect notifications
       allow read: if isAuthenticated() && (
-        resource.data.user_id == request.auth.uid || isAssociate()
+        resource.data.user_id == request.auth.uid || isStaff()
       );
-      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+      // Users create system notifications; staff can dispatch notifications to ANY user
+      allow create: if isAuthenticated() && (
+        request.resource.data.user_id == request.auth.uid || isStaff()
+      );
+      // Users can mark notifications as read; staff can update
       allow update: if isAuthenticated() && (
-        resource.data.user_id == request.auth.uid || isAssociate()
+        resource.data.user_id == request.auth.uid || isStaff()
       );
+      // Users can dismiss their own notifications; staff can delete
       allow delete: if isAuthenticated() && (
-        resource.data.user_id == request.auth.uid || isAssociate()
+        resource.data.user_id == request.auth.uid || isStaff()
       );
     }
   }

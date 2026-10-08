@@ -53,32 +53,44 @@ function timeAgo(value) {
 }
 
 function formatScanType(type) {
-  switch (type) {
-    case "url": return "🌐 URL";
-    case "email": return "✉️ Email";
-    case "message": return "💬 SMS";
-    case "document": return "📄 PDF";
-    default: return esc(type || "General");
+  switch (String(type || "").toLowerCase()) {
+    case "url": return '<i class="fa-solid fa-globe"></i> URL';
+    case "email": return '<i class="fa-solid fa-envelope"></i> Email';
+    case "message": return '<i class="fa-solid fa-comment-sms"></i> SMS';
+    case "document": return '<i class="fa-solid fa-file-pdf"></i> PDF';
+    default: return `<i class="fa-solid fa-shield-halved"></i> ${esc(type || "General")}`;
   }
 }
 
 function getStatusBadge(status) {
-  const s = String(status || "Submitted").toLowerCase();
-  if (s.includes("submitted")) return `<span class="badge submitted">📝 Submitted</span>`;
-  if (s.includes("review")) return `<span class="badge review">🔍 Under Review</span>`;
-  if (s.includes("progress")) return `<span class="badge progress">⚙️ In Progress</span>`;
-  if (s.includes("resolved")) return `<span class="badge resolved">✅ Resolved</span>`;
-  if (s.includes("closed")) return `<span class="badge closed">📁 Closed</span>`;
-  if (s.includes("open")) return `<span class="badge submitted">🟢 Open</span>`;
-  return `<span class="badge closed">${esc(status)}</span>`;
+  const s = String(status || "Open").toLowerCase();
+  if (s === "open") {
+    return `<span class="badge open"><i class="fa-solid fa-circle-dot"></i> Open</span>`;
+  }
+  if (s.includes("submitted")) {
+    return `<span class="badge submitted"><i class="fa-solid fa-file-arrow-up"></i> Submitted</span>`;
+  }
+  if (s.includes("review")) {
+    return `<span class="badge review"><i class="fa-solid fa-magnifying-glass"></i> Under Review</span>`;
+  }
+  if (s.includes("progress")) {
+    return `<span class="badge progress"><i class="fa-solid fa-arrows-rotate fa-spin"></i> In Progress</span>`;
+  }
+  if (s.includes("resolved") || s.includes("safe")) {
+    return `<span class="badge resolved"><i class="fa-solid fa-circle-check"></i> Resolved</span>`;
+  }
+  if (s.includes("closed")) {
+    return `<span class="badge closed"><i class="fa-solid fa-lock"></i> Closed</span>`;
+  }
+  return `<span class="badge open"><i class="fa-solid fa-circle-dot"></i> ${esc(status)}</span>`;
 }
 
 function getPriorityBadge(priority) {
   const p = String(priority || "Medium").toLowerCase();
-  if (p === "critical") return `<span class="badge critical">⚡ Critical</span>`;
-  if (p === "high") return `<span class="badge high">🔴 High</span>`;
-  if (p === "medium") return `<span class="badge medium">🟠 Medium</span>`;
-  return `<span class="badge low">🔵 Low</span>`;
+  if (p === "critical") return `<span class="badge critical"><i class="fa-solid fa-bolt"></i> Critical</span>`;
+  if (p === "urgent" || p === "high") return `<span class="badge high"><i class="fa-solid fa-circle-exclamation"></i> High</span>`;
+  if (p === "low") return `<span class="badge low"><i class="fa-solid fa-arrow-down"></i> Low</span>`;
+  return `<span class="badge medium"><i class="fa-solid fa-triangle-exclamation"></i> Medium</span>`;
 }
 
 /* =========================================================
@@ -91,8 +103,12 @@ function showToast(message, type = "success") {
 
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
-  const icon = type === "success" ? "✓" : type === "error" ? "✕" : "ℹ";
-  toast.innerHTML = `<span style="font-weight:900; font-size:1rem;">${icon}</span> <span>${esc(message)}</span>`;
+  const icon = type === "success" 
+    ? '<i class="fa-solid fa-circle-check" style="color: var(--green);"></i>' 
+    : type === "error" 
+    ? '<i class="fa-solid fa-circle-xmark" style="color: var(--red);"></i>' 
+    : '<i class="fa-solid fa-circle-info" style="color: var(--cyan);"></i>';
+  toast.innerHTML = `<span style="font-size:1rem; display:inline-flex; align-items:center;">${icon}</span> <span>${esc(message)}</span>`;
 
   container.appendChild(toast);
   setTimeout(() => {
@@ -170,24 +186,47 @@ window.switchTab = function (tabName) {
   }
 
   // Close mobile sidebar if open
-  const sidebar = $("sidebar");
-  if (sidebar && sidebar.classList.contains("mobile-open")) {
-    sidebar.classList.remove("mobile-open");
-  }
+  closeMobileSidebar();
 };
+
+function closeMobileSidebar() {
+  const sidebar = $("sidebar");
+  const backdrop = $("sidebarBackdrop");
+  if (sidebar) sidebar.classList.remove("mobile-open");
+  if (backdrop) backdrop.classList.remove("active");
+  document.body.style.overflow = "";
+}
+
+function openMobileSidebar() {
+  const sidebar = $("sidebar");
+  const backdrop = $("sidebarBackdrop");
+  if (sidebar) sidebar.classList.add("mobile-open");
+  if (backdrop) backdrop.classList.add("active");
+  document.body.style.overflow = "hidden";
+}
 
 // Bind navigation clicks
 document.querySelectorAll(".nav-item").forEach((btn) => {
   btn.addEventListener("click", () => {
     const target = btn.dataset.tab;
-    if (target) switchTab(target);
+    if (target) {
+      switchTab(target);
+      closeMobileSidebar();
+    }
   });
 });
 
-// Mobile menu toggle
+// Mobile menu toggle & backdrop events
 $("menuToggle")?.addEventListener("click", () => {
-  $("sidebar")?.classList.toggle("mobile-open");
+  const sidebar = $("sidebar");
+  if (sidebar && sidebar.classList.contains("mobile-open")) {
+    closeMobileSidebar();
+  } else {
+    openMobileSidebar();
+  }
 });
+$("sidebarCloseBtn")?.addEventListener("click", closeMobileSidebar);
+$("sidebarBackdrop")?.addEventListener("click", closeMobileSidebar);
 
 /* =========================================================
    FIREBASE USER AUTH & INITIALIZATION
@@ -274,6 +313,7 @@ async function initDashboard() {
   ]);
 
   renderActivityStream();
+  initPasswordSecurity();
 }
 
 /* =========================================================
@@ -622,7 +662,7 @@ window.viewComplaintDetails = function (id) {
         <div class="form-group" style="margin-top: 14px;">
           <label class="form-label">Attached Supporting Evidence File</label>
           <a href="${esc(c.evidence_url)}" target="_blank" class="uploaded-file-pill" style="text-decoration: none;">
-            📎 ${esc(c.evidence_filename || "View Attached Evidence File")} →
+            <i class="fa-solid fa-paperclip"></i> ${esc(c.evidence_filename || "View Attached Evidence File")} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.72rem; margin-left: 4px;"></i>
           </a>
         </div>
       ` : ""}
@@ -645,7 +685,7 @@ $("cmpEvidenceFile")?.addEventListener("change", async (e) => {
   const statusDiv = $("fileUploadStatus");
   if (!file || !statusDiv) return;
 
-  statusDiv.innerHTML = `<span style="font-size: 0.78rem; color: var(--cyan);">Uploading ${esc(file.name)}...</span>`;
+  statusDiv.innerHTML = `<span style="font-size: 0.78rem; color: var(--cyan);"><i class="fa-solid fa-spinner fa-spin"></i> Uploading ${esc(file.name)}...</span>`;
 
   try {
     const apiBase = typeof window.resolveNetArmorApi === "function" ? await window.resolveNetArmorApi() : "http://127.0.0.1:8000";
@@ -665,7 +705,7 @@ $("cmpEvidenceFile")?.addEventListener("change", async (e) => {
       };
       statusDiv.innerHTML = `
         <div class="uploaded-file-pill">
-          ✓ Evidence attached: ${esc(file.name)} (${(file.size / 1024).toFixed(1)} KB)
+          <i class="fa-solid fa-circle-check" style="color: var(--green);"></i> Evidence attached: ${esc(file.name)} (${(file.size / 1024).toFixed(1)} KB)
         </div>
       `;
       showToast("Evidence file successfully uploaded!", "success");
@@ -681,7 +721,7 @@ $("cmpEvidenceFile")?.addEventListener("change", async (e) => {
     };
     statusDiv.innerHTML = `
       <div class="uploaded-file-pill" style="color: var(--amber); border-color: var(--amber);">
-        ⚠️ Attached file noted: ${esc(file.name)}
+        <i class="fa-solid fa-triangle-exclamation" style="color: var(--amber);"></i> Attached file noted: ${esc(file.name)}
       </div>
     `;
   }
@@ -754,7 +794,7 @@ $("newComplaintForm")?.addEventListener("submit", async (e) => {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "🚀 Submit Complaint";
+      btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Submit Complaint`;
     }
   }
 });
@@ -893,7 +933,7 @@ function renderTicketsTable(rows) {
       <td style="color: var(--muted); font-size: 0.76rem;">${timeAgo(t.created_at)}</td>
       <td>
         <button class="btn btn-secondary btn-sm" onclick="viewTicketDetails('${t.id}')">
-          View
+          <i class="fa-solid fa-eye"></i> View
         </button>
       </td>
     </tr>
@@ -928,7 +968,7 @@ $("newTicketForm")?.addEventListener("submit", async (e) => {
   const btn = $("submitTicketBtn");
   if (btn) {
     btn.disabled = true;
-    btn.textContent = "Creating...";
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Creating...`;
   }
 
   try {
@@ -947,7 +987,9 @@ $("newTicketForm")?.addEventListener("submit", async (e) => {
       subject: subject,
       message: msg,
       status: "Open",
-      created_at: firebase.firestore.FieldValue.serverTimestamp()
+      replies: [],
+      created_at: firebase.firestore.FieldValue.serverTimestamp(),
+      updated_at: firebase.firestore.FieldValue.serverTimestamp()
     });
 
     await createNotification(
@@ -969,7 +1011,7 @@ $("newTicketForm")?.addEventListener("submit", async (e) => {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "🎫 Create Ticket";
+      btn.innerHTML = `<i class="fa-solid fa-ticket"></i> Create Ticket`;
     }
   }
 });
@@ -978,39 +1020,207 @@ $("openTicketModalBtn")?.addEventListener("click", () => {
   openModal("ticketModal");
 });
 
+/* =========================================================
+   VIEW TICKET DETAILS & USER CONVERSATION
+   ========================================================= */
 window.viewTicketDetails = function (id) {
   const t = ticketsCache.find((item) => item.id === id);
   if (!t) return;
 
-  if ($("viewTckHeader")) $("viewTckHeader").textContent = `${t.ticket_id} — Details`;
-  if ($("viewTckBody")) {
-    $("viewTckBody").innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
-        <span style="font-size: 0.78rem; color: var(--muted);">CATEGORY: <strong>${esc(t.category)}</strong></span>
-        <div style="display: flex; gap: 8px;">
-          ${getPriorityBadge(t.priority)}
-          ${getStatusBadge(t.status)}
+  if ($("viewTckHeader")) {
+    $("viewTckHeader").innerHTML = `<i class="fa-solid fa-ticket" style="color: var(--cyan);"></i> Ticket ${esc(t.ticket_id)} — Details`;
+  }
+
+  const createdDate = fmtDate(t.created_at);
+  const lastUpdated = t.updated_at ? fmtDate(t.updated_at) : createdDate;
+  const adminResponse = t.resolution_note || "";
+  const replies = Array.isArray(t.replies) ? t.replies : [];
+  const isClosed = String(t.status || "").toLowerCase() === "closed";
+
+  // Admin Response highlight card
+  let adminResponseCard = "";
+  if (adminResponse) {
+    adminResponseCard = `
+      <div class="admin-response-card">
+        <div class="admin-response-header">
+          <span class="admin-response-title">
+            <i class="fa-solid fa-shield-halved"></i> SOC Official Resolution &amp; Response
+          </span>
+          <span style="font-size: 0.72rem; color: var(--muted);">${lastUpdated}</span>
         </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Subject</label>
-        <div style="color: #fff; font-size: 0.95rem; font-weight: 700;">${esc(t.subject)}</div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Date Submitted</label>
-        <div style="color: var(--muted); font-size: 0.8rem;">${fmtDate(t.created_at)}</div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Message Details</label>
-        <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 9px; border: 1px solid var(--line-subtle); color: #dff5ec; font-size: 0.82rem; line-height: 1.6; white-space: pre-wrap;">${esc(t.message)}</div>
+        <div class="admin-response-content">${esc(adminResponse)}</div>
       </div>
     `;
   }
 
+  // Conversation history
+  let conversationHtml = "";
+  if (replies.length > 0) {
+    conversationHtml = `
+      <div class="conversation-thread-title">
+        <i class="fa-solid fa-comments"></i> Conversation History (${replies.length} ${replies.length === 1 ? 'Message' : 'Messages'})
+      </div>
+      <div class="conversation-thread" id="ticketConversationThread">
+        ${replies.map((msg) => {
+          const isAdmin = msg.sender === 'admin' || msg.sender_role === 'associate' || msg.sender_role === 'admin';
+          const senderLabel = isAdmin ? (msg.sender_name || 'NetArmor SOC Lead') : (msg.sender_name || 'You (Analyst)');
+          const icon = isAdmin ? '<i class="fa-solid fa-shield-halved"></i>' : '<i class="fa-solid fa-user"></i>';
+          const timeVal = msg.created_at || msg.timestamp;
+          const timeStr = timeVal ? fmtDate(timeVal) : 'Recent';
+          return `
+            <div class="conversation-bubble ${isAdmin ? 'admin' : 'user'}">
+              <div class="bubble-header">
+                <span class="bubble-sender">${icon} ${esc(senderLabel)}</span>
+                <span class="bubble-time">${timeStr}</span>
+              </div>
+              <div class="bubble-text">${esc(msg.message || '')}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  } else if (!adminResponse) {
+    conversationHtml = `
+      <div style="background: rgba(255,255,255,0.02); border: 1px dashed var(--line-subtle); border-radius: 10px; padding: 14px; text-align: center; color: var(--muted); font-size: 0.8rem; margin: 16px 0;">
+        <i class="fa-solid fa-headset" style="font-size: 1.2rem; display: block; margin-bottom: 6px; color: var(--cyan);"></i>
+        Awaiting response from NetArmor Support Engineering. You will be notified in-app once an engineer replies.
+      </div>
+    `;
+  }
+
+  // Reply box
+  let replyBoxHtml = "";
+  if (!isClosed) {
+    replyBoxHtml = `
+      <div class="ticket-reply-box">
+        <label class="form-label" style="display: flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-reply"></i> Post a Reply / Follow-Up Note
+        </label>
+        <textarea id="userTicketReplyInput" class="form-textarea" placeholder="Add further details or ask a follow-up question regarding this ticket..." style="min-height: 75px; margin-bottom: 10px;"></textarea>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn btn-primary btn-sm" id="sendUserReplyBtn" onclick="submitUserTicketReply('${t.id}')">
+            <i class="fa-solid fa-paper-plane"></i> Send Reply
+          </button>
+        </div>
+      </div>
+    `;
+  } else {
+    replyBoxHtml = `
+      <div style="margin-top: 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--line-subtle); border-radius: 10px; padding: 12px 16px; font-size: 0.8rem; color: var(--muted); display: flex; align-items: center; gap: 10px;">
+        <i class="fa-solid fa-lock" style="color: var(--amber);"></i>
+        <span>This ticket is marked as <strong>Closed</strong>. If you require further support, please create a new support ticket.</span>
+      </div>
+    `;
+  }
+
+  if ($("viewTckBody")) {
+    $("viewTckBody").innerHTML = `
+      <!-- TOP METADATA CHIPS -->
+      <div class="ticket-detail-grid">
+        <div class="ticket-detail-item">
+          <small>Ticket ID</small>
+          <strong style="color: var(--cyan);"><i class="fa-solid fa-hashtag"></i> ${esc(t.ticket_id)}</strong>
+        </div>
+        <div class="ticket-detail-item">
+          <small>Category</small>
+          <span>${esc(t.category || 'General')}</span>
+        </div>
+        <div class="ticket-detail-item">
+          <small>Priority</small>
+          <div>${getPriorityBadge(t.priority)}</div>
+        </div>
+        <div class="ticket-detail-item">
+          <small>Status</small>
+          <div>${getStatusBadge(t.status)}</div>
+        </div>
+        <div class="ticket-detail-item">
+          <small>Created</small>
+          <span style="font-size: 0.76rem; color: var(--muted-light);">${createdDate}</span>
+        </div>
+        <div class="ticket-detail-item">
+          <small>Last Updated</small>
+          <span style="font-size: 0.76rem; color: var(--muted-light);">${lastUpdated}</span>
+        </div>
+      </div>
+
+      <!-- SUBJECT -->
+      <div style="margin-bottom: 14px;">
+        <small style="color: var(--muted); text-transform: uppercase; font-weight: 700; font-size: 0.7rem; letter-spacing: 0.5px;">SUBJECT</small>
+        <h4 style="margin: 4px 0 0; color: #fff; font-size: 1.05rem;">${esc(t.subject)}</h4>
+      </div>
+
+      <!-- ORIGINAL DESCRIPTION -->
+      <div class="ticket-description-box">
+        <h5><i class="fa-solid fa-align-left"></i> Original Request / Issue Description</h5>
+        <div class="ticket-description-content">${esc(t.message || t.description || 'No description provided.')}</div>
+      </div>
+
+      <!-- ADMIN OFFICIAL RESPONSE -->
+      ${adminResponseCard}
+
+      <!-- CONVERSATION TIMELINE -->
+      ${conversationHtml}
+
+      <!-- REPLY ACTION BOX -->
+      ${replyBoxHtml}
+    `;
+  }
+
   openModal("viewTicketModal");
+};
+
+window.submitUserTicketReply = async function (id) {
+  const db = getDb();
+  if (!db || !currentUser) return;
+
+  const replyInput = $("userTicketReplyInput");
+  const msg = (replyInput?.value || "").trim();
+  if (!msg) {
+    showToast("Please enter a reply message before submitting.", "error");
+    return;
+  }
+
+  const btn = $("sendUserReplyBtn");
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Sending...`;
+  }
+
+  try {
+    const t = ticketsCache.find((item) => item.id === id);
+    const nowIso = new Date().toISOString();
+    const newReply = {
+      sender: "user",
+      sender_name: currentUser.displayName || "Analyst",
+      sender_email: currentUser.email || "",
+      message: msg,
+      timestamp: nowIso,
+      created_at: nowIso
+    };
+
+    const updatePayload = {
+      replies: firebase.firestore.FieldValue.arrayUnion(newReply),
+      updated_at: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    if (t && t.status === "Resolved") {
+      updatePayload.status = "In Progress";
+    }
+
+    await db.collection("support_tickets").doc(id).update(updatePayload);
+
+    showToast("Reply posted successfully!", "success");
+    await loadTickets();
+    window.viewTicketDetails(id);
+
+  } catch (err) {
+    console.error("Error submitting ticket reply:", err);
+    showToast(err.message || "Failed to submit reply.", "error");
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Send Reply`;
+    }
+  }
 };
 
 /* =========================================================
@@ -1142,7 +1352,7 @@ function renderActivityStream() {
   // 1. Scans
   scansCache.slice(0, 4).forEach((s) => {
     activities.push({
-      icon: s.result === "Threat" ? "🚨" : "🛡️",
+      icon: s.result === "Threat" ? '<i class="fa-solid fa-ban" style="color:var(--red);"></i>' : '<i class="fa-solid fa-shield-halved" style="color:var(--green);"></i>',
       iconBg: s.result === "Threat" ? "rgba(255,85,119,0.15)" : "rgba(0,255,136,0.12)",
       title: `${s.result} Scan: ${formatScanType(s.scan_type)}`,
       time: s.created_at,
@@ -1153,7 +1363,7 @@ function renderActivityStream() {
   // 2. Complaints
   complaintsCache.slice(0, 3).forEach((c) => {
     activities.push({
-      icon: "🚨",
+      icon: '<i class="fa-solid fa-triangle-exclamation" style="color:var(--cyan);"></i>',
       iconBg: "rgba(56,189,248,0.15)",
       title: `Complaint Filed: ${c.complaint_id}`,
       time: c.created_at,
@@ -1164,7 +1374,7 @@ function renderActivityStream() {
   // 3. Tickets
   ticketsCache.slice(0, 3).forEach((t) => {
     activities.push({
-      icon: "🎫",
+      icon: '<i class="fa-solid fa-ticket" style="color:var(--purple);"></i>',
       iconBg: "rgba(168,85,247,0.15)",
       title: `Support Ticket: ${t.ticket_id}`,
       time: t.created_at,
@@ -1256,7 +1466,7 @@ $("feedbackForm")?.addEventListener("submit", async (e) => {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "⭐ Submit User Feedback";
+      btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Submit User Feedback`;
     }
   }
 });
@@ -1311,10 +1521,226 @@ $("profileSettingsForm")?.addEventListener("submit", async (e) => {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "💾 Save Profile Changes";
+      btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Profile Changes';
     }
   }
 });
+
+/* =========================================================
+   PASSWORD CHANGE & SECURITY CREDENTIALS CONTROLLER
+   ========================================================= */
+
+function initPasswordSecurity() {
+  // 1. Password eye visibility toggles
+  document.querySelectorAll(".password-eye-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const targetId = btn.getAttribute("data-target");
+      const input = targetId ? $(targetId) : null;
+      if (!input) return;
+
+      const isPassword = input.type === "password";
+      input.type = isPassword ? "text" : "password";
+
+      const icon = btn.querySelector("i");
+      if (icon) {
+        icon.className = isPassword ? "fa-solid fa-eye-slash" : "fa-solid fa-eye";
+      }
+    });
+  });
+
+  // 2. Real-time strength meter on newPassword
+  $("newPassword")?.addEventListener("input", (e) => {
+    evaluatePasswordStrength(e.target.value);
+    checkPasswordMatch();
+  });
+
+  // 3. Live password match checking
+  $("confirmPassword")?.addEventListener("input", () => {
+    checkPasswordMatch();
+  });
+
+  // 4. Form submission handler
+  $("changePasswordForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const auth = getAuth();
+    if (!auth || !auth.currentUser) {
+      showPasswordAlert("Active user session required. Please sign in.", "error");
+      return;
+    }
+
+    const currentPassword = $("currentPassword")?.value || "";
+    const newPassword = $("newPassword")?.value || "";
+    const confirmPassword = $("confirmPassword")?.value || "";
+
+    if (!currentPassword) {
+      showPasswordAlert("Please provide your current password.", "error");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      showPasswordAlert("New password must contain at least 8 characters.", "error");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      showPasswordAlert("New password and confirm password do not match.", "error");
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      showPasswordAlert("New password must be different from your current password.", "error");
+      return;
+    }
+
+    const btn = $("changePasswordBtn");
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Verifying & Updating...`;
+    }
+
+    try {
+      const user = auth.currentUser;
+      // Step A: Re-authenticate with Current Password
+      const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
+      await user.reauthenticateWithCredential(credential);
+
+      // Step B: Update Password
+      await user.updatePassword(newPassword);
+
+      // Step C: Success Feedback
+      showPasswordAlert("Password updated successfully! Your account credentials have been securely refreshed.", "success");
+      showToast("Password updated successfully!", "success");
+
+      // In-app audit notification
+      await createNotification(
+        "Password Updated",
+        "Your account password was updated successfully. If this wasn't you, report immediate fraud.",
+        "security"
+      );
+
+      // Reset form
+      $("changePasswordForm")?.reset();
+      evaluatePasswordStrength("");
+      const matchFeedback = $("passwordMatchFeedback");
+      if (matchFeedback) matchFeedback.style.display = "none";
+
+      renderActivityStream();
+
+    } catch (err) {
+      console.error("Password update error:", err);
+      let msg = "Unable to update password. Please try again.";
+      if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential" || err.code === "auth/invalid-login-credentials") {
+        msg = "Current password is incorrect. Please verify and try again.";
+      } else if (err.code === "auth/weak-password") {
+        msg = "Password is too weak. Please include at least 8 characters with a mix of letters, numbers, and symbols.";
+      } else if (err.code === "auth/requires-recent-login") {
+        msg = "Security session expired. Please sign out and log back in to verify your identity.";
+      } else if (err.message) {
+        msg = err.message;
+      }
+      showPasswordAlert(msg, "error");
+      showToast(msg, "error");
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-key"></i> Update Password`;
+      }
+    }
+  });
+}
+
+function evaluatePasswordStrength(password) {
+  const p = password || "";
+  const criteria = {
+    length: p.length >= 8,
+    upper: /[A-Z]/.test(p),
+    lower: /[a-z]/.test(p),
+    number: /[0-9]/.test(p),
+    special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p)
+  };
+
+  const updateCrit = (id, met) => {
+    const el = $(id);
+    if (!el) return;
+    if (met) {
+      el.classList.add("met");
+      const icon = el.querySelector("i");
+      if (icon) icon.className = "fa-solid fa-circle-check";
+    } else {
+      el.classList.remove("met");
+      const icon = el.querySelector("i");
+      if (icon) icon.className = "fa-regular fa-circle";
+    }
+  };
+
+  updateCrit("crit-len", criteria.length);
+  updateCrit("crit-upper", criteria.upper);
+  updateCrit("crit-lower", criteria.lower);
+  updateCrit("crit-num", criteria.number);
+  updateCrit("crit-special", criteria.special);
+
+  let score = 0;
+  if (criteria.length) score++;
+  if (criteria.upper) score++;
+  if (criteria.lower) score++;
+  if (criteria.number) score++;
+  if (criteria.special) score++;
+
+  const fill = $("strengthFill");
+  const text = $("strengthText");
+
+  if (!p) {
+    if (fill) { fill.className = "strength-bar-fill"; fill.style.width = "0%"; }
+    if (text) { text.className = "strength-text"; text.textContent = "Too Short"; }
+    return score;
+  }
+
+  if (score <= 2) {
+    if (fill) fill.className = "strength-bar-fill weak";
+    if (text) { text.className = "strength-text weak"; text.textContent = "Weak"; }
+  } else if (score === 3) {
+    if (fill) fill.className = "strength-bar-fill fair";
+    if (text) { text.className = "strength-text fair"; text.textContent = "Moderate"; }
+  } else if (score === 4) {
+    if (fill) fill.className = "strength-bar-fill good";
+    if (text) { text.className = "strength-text good"; text.textContent = "Strong"; }
+  } else {
+    if (fill) fill.className = "strength-bar-fill strong";
+    if (text) { text.className = "strength-text strong"; text.textContent = "Very Strong"; }
+  }
+
+  return score;
+}
+
+function checkPasswordMatch() {
+  const newPwd = $("newPassword")?.value || "";
+  const confPwd = $("confirmPassword")?.value || "";
+  const feedback = $("passwordMatchFeedback");
+  if (!feedback) return;
+
+  if (!confPwd) {
+    feedback.style.display = "none";
+    return;
+  }
+
+  feedback.style.display = "block";
+  if (newPwd === confPwd) {
+    feedback.style.color = "var(--green)";
+    feedback.innerHTML = '<i class="fa-solid fa-circle-check"></i> Passwords match';
+  } else {
+    feedback.style.color = "var(--red)";
+    feedback.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Passwords do not match';
+  }
+}
+
+function showPasswordAlert(msg, type = "error") {
+  const box = $("passwordAlertBox");
+  if (!box) return;
+  box.style.display = "flex";
+  box.className = `password-feedback ${type}`;
+  const icon = type === "success" ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-triangle-exclamation"></i>';
+  box.innerHTML = `${icon} <span>${esc(msg)}</span>`;
+}
 
 /* =========================================================
    FAQ ACCORDION INTERACTIVITY
@@ -1361,13 +1787,13 @@ $("sidebarLogoutBtn")?.addEventListener("click", handleLogout);
    ========================================================= */
 
 $("refresh")?.addEventListener("click", () => {
-  $("refresh").textContent = "↻ Updating...";
-  loadScans().finally(() => ($("refresh").textContent = "↻ Refresh"));
+  $("refresh").innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin"></i> Updating...';
+  loadScans().finally(() => ($("refresh").innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Refresh'));
 });
 
 $("refreshFullScansBtn")?.addEventListener("click", () => {
-  $("refreshFullScansBtn").textContent = "↻...";
-  loadScans().finally(() => ($("refreshFullScansBtn").textContent = "↻ Refresh"));
+  $("refreshFullScansBtn").innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin"></i> Updating...';
+  loadScans().finally(() => ($("refreshFullScansBtn").innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Refresh'));
 });
 
 $("refreshComplaintsBtn")?.addEventListener("click", () => {

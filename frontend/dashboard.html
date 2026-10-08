@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NetArmor AI — User Security Console & Incident Desk</title>
   <link rel="icon" type="image/png" href="images/logo.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="dashboard.css">
 
   <!-- Google Firebase Compat SDK -->
@@ -16,6 +17,7 @@
 
 <body>
   <div class="grid"></div>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
   <div class="app-shell">
     <!-- =========================================================
@@ -27,58 +29,63 @@
           <img src="images/logo.png" alt="NetArmor Logo" style="width: 26px; height: 26px; object-fit: contain;">
           <span>NetArmor <b>AI</b></span>
         </a>
-        <span class="brand-badge">v2.4 PRO</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="brand-badge">v2.4 PRO</span>
+          <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close navigation">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
       </div>
 
       <nav class="sidebar-nav">
         <div class="nav-section-label">Core Console</div>
         <button class="nav-item active" data-tab="overview">
-          <span class="icon">📊</span>
+          <span class="icon"><i class="fa-solid fa-chart-pie"></i></span>
           <span>Overview</span>
         </button>
 
         <button class="nav-item" data-tab="threats">
-          <span class="icon">🔍</span>
+          <span class="icon"><i class="fa-solid fa-shield-virus"></i></span>
           <span>Threat Diagnostics</span>
           <span class="counter-badge" id="sidebarScanCount">0</span>
         </button>
 
         <button class="nav-item" data-tab="security">
-          <span class="icon">🛡️</span>
+          <span class="icon"><i class="fa-solid fa-shield-halved"></i></span>
           <span>Security Center</span>
         </button>
 
         <div class="nav-section-label">Incident &amp; Support</div>
         <button class="nav-item" data-tab="complaints">
-          <span class="icon">🚨</span>
+          <span class="icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
           <span>Cyber Complaints</span>
           <span class="counter-badge threat-alert" id="sidebarComplaintCount">0</span>
         </button>
 
         <button class="nav-item" data-tab="fraud">
-          <span class="icon">⚠️</span>
+          <span class="icon"><i class="fa-solid fa-file-shield"></i></span>
           <span>Report Fraud</span>
         </button>
 
         <button class="nav-item" data-tab="tickets">
-          <span class="icon">🎫</span>
+          <span class="icon"><i class="fa-solid fa-ticket"></i></span>
           <span>Support Tickets</span>
           <span class="counter-badge" id="sidebarTicketCount">0</span>
         </button>
 
         <div class="nav-section-label">Assistance &amp; Account</div>
         <button class="nav-item" data-tab="help">
-          <span class="icon">❓</span>
+          <span class="icon"><i class="fa-solid fa-circle-question"></i></span>
           <span>Help &amp; FAQs</span>
         </button>
 
         <button class="nav-item" data-tab="feedback">
-          <span class="icon">⭐</span>
+          <span class="icon"><i class="fa-solid fa-star"></i></span>
           <span>Feedback</span>
         </button>
 
         <button class="nav-item" data-tab="settings">
-          <span class="icon">⚙️</span>
+          <span class="icon"><i class="fa-solid fa-gear"></i></span>
           <span>Account Settings</span>
         </button>
       </nav>
@@ -93,8 +100,8 @@
               <span id="sidebarUserRole">Standard Analyst</span>
             </div>
           </div>
-          <button class="icon-button btn-sm" id="sidebarLogoutBtn" title="Logout" style="width: 30px; height: 30px;">
-            ⏻
+          <button class="icon-button btn-sm" id="sidebarLogoutBtn" title="Logout" style="width: 32px; height: 32px;">
+            <i class="fa-solid fa-right-from-bracket"></i>
           </button>
         </div>
       </div>
@@ -107,7 +114,9 @@
       <!-- TOP NAVIGATION BAR -->
       <header class="topbar">
         <div class="topbar-left">
-          <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">☰</button>
+          <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">
+            <i class="fa-solid fa-bars"></i>
+          </button>
           <div class="breadcrumb-view">
             <small>Console</small> / <span id="currentViewTitle">Overview</span>
           </div>
@@ -115,17 +124,17 @@
 
         <div class="topbar-right">
           <a href="detect.html" class="btn btn-primary btn-sm">
-            ＋ Launch Scanner
+            <i class="fa-solid fa-plus"></i> <span class="btn-text-mobile-hide">Launch Scanner</span>
           </a>
 
           <button class="btn btn-secondary btn-sm" id="quickComplaintBtn">
-            🚨 Raise Complaint
+            <i class="fa-solid fa-bullhorn"></i> <span class="btn-text-mobile-hide">Raise Complaint</span>
           </button>
 
           <!-- Notifications Bell -->
           <div class="notification-btn-wrapper">
             <button class="icon-button" id="notifBellBtn" aria-label="Notifications">
-              🔔
+              <i class="fa-solid fa-bell"></i>
               <span class="notif-badge-pill" id="notifCountPill" style="display: none;">0</span>
             </button>
 
@@ -142,7 +151,7 @@
           </div>
 
           <button class="btn btn-secondary btn-sm" id="logout">
-            Logout
+            <i class="fa-solid fa-right-from-bracket"></i> <span class="btn-text-mobile-hide">Logout</span>
           </button>
         </div>
       </header>
@@ -166,10 +175,10 @@
             </div>
             <div class="banner-actions">
               <a href="detect.html" class="btn btn-primary">
-                🔍 New Diagnostic Scan
+                <i class="fa-solid fa-magnifying-glass"></i> New Diagnostic Scan
               </a>
               <button class="btn btn-secondary" onclick="switchTab('complaints')">
-                🚨 Cyber Complaints
+                <i class="fa-solid fa-bullhorn"></i> Cyber Complaints
               </button>
             </div>
           </div>
@@ -179,7 +188,7 @@
             <div class="kpi-card">
               <div class="kpi-top">
                 <span class="kpi-label">Total Diagnostics</span>
-                <span class="kpi-icon-pill">🌐</span>
+                <span class="kpi-icon-pill"><i class="fa-solid fa-globe"></i></span>
               </div>
               <h3 class="kpi-value" id="total">0</h3>
               <p class="kpi-subtext">All inspected vectors</p>
@@ -188,7 +197,7 @@
             <div class="kpi-card">
               <div class="kpi-top">
                 <span class="kpi-label">Threats Blocked</span>
-                <span class="kpi-icon-pill" style="color: var(--red);">🚨</span>
+                <span class="kpi-icon-pill" style="color: var(--red);"><i class="fa-solid fa-ban"></i></span>
               </div>
               <h3 class="kpi-value" id="threats" style="color: var(--red);">0</h3>
               <p class="kpi-subtext">High-risk flagged items</p>
@@ -197,7 +206,7 @@
             <div class="kpi-card">
               <div class="kpi-top">
                 <span class="kpi-label">Safe Verified</span>
-                <span class="kpi-icon-pill" style="color: var(--green);">🛡️</span>
+                <span class="kpi-icon-pill" style="color: var(--green);"><i class="fa-solid fa-circle-check"></i></span>
               </div>
               <h3 class="kpi-value" id="safe" style="color: var(--green);">0</h3>
               <p class="kpi-subtext">Passed heuristics</p>
@@ -206,7 +215,7 @@
             <div class="kpi-card">
               <div class="kpi-top">
                 <span class="kpi-label">Threat Ratio</span>
-                <span class="kpi-icon-pill">⚖️</span>
+                <span class="kpi-icon-pill"><i class="fa-solid fa-chart-line"></i></span>
               </div>
               <h3 class="kpi-value" id="rate">0%</h3>
               <p class="kpi-subtext">Vulnerability index</p>
@@ -215,7 +224,7 @@
             <div class="kpi-card">
               <div class="kpi-top">
                 <span class="kpi-label">Active Complaints</span>
-                <span class="kpi-icon-pill" style="color: var(--cyan);">📁</span>
+                <span class="kpi-icon-pill" style="color: var(--cyan);"><i class="fa-solid fa-folder-open"></i></span>
               </div>
               <h3 class="kpi-value" id="kpiComplaints" style="color: var(--cyan);">0</h3>
               <p class="kpi-subtext">Filed incident reports</p>
@@ -223,7 +232,7 @@
           </div>
 
           <!-- QUICK ACTIONS & RECENT SCAN GRID -->
-          <div style="display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr); gap: 20px;">
+          <div class="two-col-grid">
             <!-- RECENT SCANS TABLE -->
             <div class="panel">
               <div class="panel-header-flex">
@@ -231,7 +240,7 @@
                   <small style="color: var(--green); font-size: 0.68rem; font-weight: 800; letter-spacing: 1px;">TELEMETRY</small>
                   <h3 style="margin: 3px 0 0; font-size: 1.15rem;">Recent Security Scans</h3>
                 </div>
-                <button class="btn btn-secondary btn-sm" id="refresh">↻ Refresh</button>
+                <button class="btn btn-secondary btn-sm" id="refresh"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
               </div>
 
               <div class="table-responsive">
@@ -292,31 +301,31 @@
               <small>DEEP TELEMETRY LOGS</small>
               <h2>Diagnostic Threat History</h2>
             </div>
-            <a href="detect.html" class="btn btn-primary btn-sm">＋ Launch New Diagnostic</a>
+            <a href="detect.html" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Launch Diagnostic</a>
           </div>
 
           <div class="panel">
             <div class="filter-bar">
               <div class="search-input-box">
-                <span class="icon">🔍</span>
+                <span class="icon"><i class="fa-solid fa-magnifying-glass"></i></span>
                 <input type="text" id="scanSearchInput" placeholder="Search inspected targets, URLs, or diagnostics...">
               </div>
 
               <select class="filter-select" id="scanVectorFilter">
                 <option value="all">All Vectors</option>
-                <option value="url">🌐 URLs</option>
-                <option value="email">✉️ Emails</option>
-                <option value="message">💬 SMS / Messages</option>
-                <option value="document">📄 PDF Documents</option>
+                <option value="url">URLs</option>
+                <option value="email">Emails</option>
+                <option value="message">SMS / Messages</option>
+                <option value="document">PDF Documents</option>
               </select>
 
               <select class="filter-select" id="scanResultFilter">
                 <option value="all">All Results</option>
-                <option value="Threat">🚨 Threats Only</option>
-                <option value="Safe">🛡️ Safe Only</option>
+                <option value="Threat">Threats Only</option>
+                <option value="Safe">Safe Only</option>
               </select>
 
-              <button class="btn btn-secondary btn-sm" id="refreshFullScansBtn">↻ Refresh</button>
+              <button class="btn btn-secondary btn-sm" id="refreshFullScansBtn"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
             </div>
 
             <div class="table-responsive">
@@ -348,7 +357,7 @@
               <h2>Cyber Crime &amp; Fraud Complaints</h2>
             </div>
             <button class="btn btn-primary btn-sm" id="openComplaintModalBtn">
-              🚨 File New Cyber Complaint
+              <i class="fa-solid fa-bullhorn"></i> File New Cyber Complaint
             </button>
           </div>
 
@@ -424,7 +433,7 @@
                   <option value="Resolved">Resolved</option>
                   <option value="Closed">Closed</option>
                 </select>
-                <button class="btn btn-secondary btn-sm" id="refreshComplaintsBtn">↻ Refresh</button>
+                <button class="btn btn-secondary btn-sm" id="refreshComplaintsBtn"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
               </div>
             </div>
 
@@ -460,7 +469,7 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); gap: 20px;">
+          <div class="two-col-grid">
             <div class="panel">
               <p style="color: var(--muted-light); font-size: 0.85rem; margin-top: 0;">
                 Quickly report deceptive phishing URLs, fraudulent UPI IDs, SMS scam numbers, or suspicious links. Our heuristic pipeline will ingest the report into the threat telemetry database.
@@ -471,12 +480,12 @@
                   <div class="form-group">
                     <label class="form-label">Fraud Vector / Category</label>
                     <select class="form-select" id="fraudCategory" required>
-                      <option value="Phishing URL / Fake Website">🌐 Phishing URL / Fake Website</option>
-                      <option value="SMS / WhatsApp Smishing Scam">💬 SMS / WhatsApp Smishing Scam</option>
-                      <option value="Financial / UPI / Payment Fraud">💳 Financial / UPI / Payment Fraud</option>
-                      <option value="Social Engineering / Impersonation">🎭 Social Engineering / Impersonation</option>
-                      <option value="Malicious APK / Trojan / Document">📄 Malicious APK / Trojan / Document</option>
-                      <option value="Fake Job / Lottery Scam">🎯 Fake Job / Lottery Scam</option>
+                      <option value="Phishing URL / Fake Website">Phishing URL / Fake Website</option>
+                      <option value="SMS / WhatsApp Smishing Scam">SMS / WhatsApp Smishing Scam</option>
+                      <option value="Financial / UPI / Payment Fraud">Financial / UPI / Payment Fraud</option>
+                      <option value="Social Engineering / Impersonation">Social Engineering / Impersonation</option>
+                      <option value="Malicious APK / Trojan / Document">Malicious APK / Trojan / Document</option>
+                      <option value="Fake Job / Lottery Scam">Fake Job / Lottery Scam</option>
                     </select>
                   </div>
 
@@ -491,12 +500,12 @@
                   </div>
                 </div>
 
-                <div style="display: flex; gap: 12px; margin-top: 10px;">
+                <div style="display: flex; gap: 12px; margin-top: 10px; flex-wrap: wrap;">
                   <button type="submit" class="btn btn-primary">
-                    ⚠️ Submit Threat Report
+                    <i class="fa-solid fa-shield-virus"></i> Submit Threat Report
                   </button>
                   <button type="button" class="btn btn-secondary" id="testFraudInScannerBtn">
-                    🔍 Test in NetArmor Scanner Hub
+                    <i class="fa-solid fa-magnifying-glass"></i> Test in Scanner Hub
                   </button>
                 </div>
               </form>
@@ -528,14 +537,14 @@
               <h2>Support Ticket System</h2>
             </div>
             <button class="btn btn-primary btn-sm" id="openTicketModalBtn">
-              🎫 Open Support Ticket
+              <i class="fa-solid fa-plus"></i> Open Support Ticket
             </button>
           </div>
 
           <div class="panel">
             <div class="filter-bar">
               <div class="search-input-box">
-                <span class="icon">🔍</span>
+                <span class="icon"><i class="fa-solid fa-magnifying-glass"></i></span>
                 <input type="text" id="ticketSearchInput" placeholder="Search ticket subject, ticket ID, or issue...">
               </div>
 
@@ -556,7 +565,7 @@
                 <option value="Closed">Closed</option>
               </select>
 
-              <button class="btn btn-secondary btn-sm" id="refreshTicketsBtn">↻ Refresh</button>
+              <button class="btn btn-secondary btn-sm" id="refreshTicketsBtn"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
             </div>
 
             <div class="table-responsive">
@@ -589,10 +598,10 @@
               <small>POSTURE &amp; COMPLIANCE</small>
               <h2>Security Center</h2>
             </div>
-            <a href="update-password.html" class="btn btn-secondary btn-sm">🔒 Update Password</a>
+            <button class="btn btn-secondary btn-sm" onclick="switchTab('settings')"><i class="fa-solid fa-key"></i> Update Password</button>
           </div>
 
-          <div style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1.2fr); gap: 20px;">
+          <div class="two-col-grid">
             <!-- SECURITY HEALTH METER -->
             <div class="panel">
               <small style="color: var(--green); font-weight: 800; letter-spacing: 1.2px;">SECURITY POSTURE</small>
@@ -684,14 +693,14 @@
               <small>CUSTOMER CARE &amp; 24/7 HELPLINES</small>
               <h2>Help Center &amp; Cyber Guidelines</h2>
             </div>
-            <a href="detect.html" class="btn btn-primary btn-sm">💬 Talk with ArmorBot AI</a>
+            <a href="detect.html" class="btn btn-primary btn-sm"><i class="fa-solid fa-robot"></i> Talk with ArmorBot AI</a>
           </div>
 
           <!-- HELPLINE CARDS -->
           <div class="helpline-grid">
             <div class="helpline-card">
               <div class="helpline-top">
-                <div class="helpline-icon">📞</div>
+                <div class="helpline-icon"><i class="fa-solid fa-phone" style="color: var(--green);"></i></div>
                 <h4 class="helpline-title">National Cyber Crime Helpline</h4>
               </div>
               <div class="helpline-number">1930</div>
@@ -700,7 +709,7 @@
 
             <div class="helpline-card">
               <div class="helpline-top">
-                <div class="helpline-icon">🌐</div>
+                <div class="helpline-icon"><i class="fa-solid fa-building-shield" style="color: var(--cyan);"></i></div>
                 <h4 class="helpline-title">Official Portal (MHA)</h4>
               </div>
               <div class="helpline-number" style="font-size: 1rem; margin: 10px 0;">cybercrime.gov.in</div>
@@ -709,7 +718,7 @@
 
             <div class="helpline-card">
               <div class="helpline-top">
-                <div class="helpline-icon">🛡️</div>
+                <div class="helpline-icon"><i class="fa-solid fa-shield-halved" style="color: var(--green);"></i></div>
                 <h4 class="helpline-title">NetArmor AI Incident Desk</h4>
               </div>
               <div class="helpline-number" style="font-size: 1rem; margin: 10px 0;">support@netarmor.ai</div>
@@ -725,7 +734,7 @@
                 <h3 style="margin: 3px 0 0; font-size: 1.15rem;">Frequently Asked Questions</h3>
               </div>
               <div class="search-input-box" style="max-width: 280px;">
-                <span class="icon">🔍</span>
+                <span class="icon"><i class="fa-solid fa-magnifying-glass"></i></span>
                 <input type="text" id="faqSearchInput" placeholder="Filter questions...">
               </div>
             </div>
@@ -734,7 +743,7 @@
               <div class="faq-item open">
                 <div class="faq-question">
                   <span>How does NetArmor AI detect zero-day phishing websites?</span>
-                  <span class="faq-toggle-icon">▼</span>
+                  <i class="fa-solid fa-chevron-down faq-toggle-icon"></i>
                 </div>
                 <div class="faq-answer">
                   NetArmor AI employs a multi-vector heuristic and ML feature extractor. It inspects structural anomalies such as embedded IP addresses, suspicious '@' symbols, deep multi-level subdomains, typo-squatted brand names, and insecure protocols to accurately predict phishing threats even before traditional blocklists list them.
@@ -744,7 +753,7 @@
               <div class="faq-item">
                 <div class="faq-question">
                   <span>What steps should I take immediately after a financial cyber fraud?</span>
-                  <span class="faq-toggle-icon">▼</span>
+                  <i class="fa-solid fa-chevron-down faq-toggle-icon"></i>
                 </div>
                 <div class="faq-answer">
                   Act within the <strong>"Golden Hour" (first 2 hours)</strong>:
@@ -758,7 +767,7 @@
               <div class="faq-item">
                 <div class="faq-question">
                   <span>How does the Cyber Complaint tracking system work?</span>
-                  <span class="faq-toggle-icon">▼</span>
+                  <i class="fa-solid fa-chevron-down faq-toggle-icon"></i>
                 </div>
                 <div class="faq-answer">
                   When you submit a complaint in NetArmor AI, the system automatically assigns a unique tracking ID (e.g. <code>NET-CMP-2026-XXXX</code>) and stores the incident securely in Cloud Firestore. You can inspect its status at any time across 5 milestones: <em>Submitted</em>, <em>Under Review</em>, <em>In Progress</em>, <em>Resolved</em>, and <em>Closed</em>.
@@ -768,7 +777,7 @@
               <div class="faq-item">
                 <div class="faq-question">
                   <span>Can I upload evidence files (screenshots, PDFs) with my complaint?</span>
-                  <span class="faq-toggle-icon">▼</span>
+                  <i class="fa-solid fa-chevron-down faq-toggle-icon"></i>
                 </div>
                 <div class="faq-answer">
                   Yes! The NetArmor AI complaint portal supports file attachments up to 10MB (PNG, JPG, PDF, TXT, DOCX). The files are securely processed and linked to your incident report.
@@ -778,7 +787,7 @@
               <div class="faq-item">
                 <div class="faq-question">
                   <span>How does the Email NLP Analyzer identify phishing emails?</span>
-                  <span class="faq-toggle-icon">▼</span>
+                  <i class="fa-solid fa-chevron-down faq-toggle-icon"></i>
                 </div>
                 <div class="faq-answer">
                   The Email Analyzer utilizes TF-IDF Vectorization and an XGBoost machine learning classifier trained on cybersecurity datasets. It evaluates psychological urgency lures, artificial deadlines, fake credential-verification demands, and fraudulent phrasing.
@@ -809,11 +818,11 @@
                 <div class="form-group">
                   <label class="form-label">Overall System Satisfaction</label>
                   <div class="star-rating-box" id="starRating">
-                    <button type="button" class="star-btn" data-value="1">★</button>
-                    <button type="button" class="star-btn" data-value="2">★</button>
-                    <button type="button" class="star-btn" data-value="3">★</button>
-                    <button type="button" class="star-btn" data-value="4">★</button>
-                    <button type="button" class="star-btn active" data-value="5">★</button>
+                    <button type="button" class="star-btn" data-value="1" aria-label="1 star"><i class="fa-solid fa-star"></i></button>
+                    <button type="button" class="star-btn" data-value="2" aria-label="2 stars"><i class="fa-solid fa-star"></i></button>
+                    <button type="button" class="star-btn" data-value="3" aria-label="3 stars"><i class="fa-solid fa-star"></i></button>
+                    <button type="button" class="star-btn" data-value="4" aria-label="4 stars"><i class="fa-solid fa-star"></i></button>
+                    <button type="button" class="star-btn active" data-value="5" aria-label="5 stars"><i class="fa-solid fa-star"></i></button>
                   </div>
                   <input type="hidden" id="feedbackRating" value="5">
                 </div>
@@ -821,12 +830,12 @@
                 <div class="form-group">
                   <label class="form-label">Feedback Category</label>
                   <select class="form-select" id="feedbackCategory" required>
-                    <option value="Model & Scanner Accuracy">🎯 Model &amp; Scanner Accuracy</option>
-                    <option value="Dashboard Usability">🖥️ Dashboard Usability</option>
-                    <option value="Complaint & Support System">🚨 Complaint &amp; Support System</option>
-                    <option value="Chrome Extension Performance">🧩 Chrome Extension Performance</option>
-                    <option value="Feature Suggestion">💡 Feature Suggestion</option>
-                    <option value="General Thoughts">💬 General Thoughts</option>
+                    <option value="Model & Scanner Accuracy">Model &amp; Scanner Accuracy</option>
+                    <option value="Dashboard Usability">Dashboard Usability</option>
+                    <option value="Complaint & Support System">Complaint &amp; Support System</option>
+                    <option value="Chrome Extension Performance">Chrome Extension Performance</option>
+                    <option value="Feature Suggestion">Feature Suggestion</option>
+                    <option value="General Thoughts">General Thoughts</option>
                   </select>
                 </div>
 
@@ -836,7 +845,7 @@
                 </div>
 
                 <button type="submit" class="btn btn-primary" id="feedbackSubmitBtn">
-                  ⭐ Submit User Feedback
+                  <i class="fa-solid fa-paper-plane"></i> Submit User Feedback
                 </button>
               </form>
             </div>
@@ -854,9 +863,12 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr); gap: 20px;">
+          <div class="two-col-grid">
             <div class="panel">
-              <h3 style="margin: 0 0 16px; font-size: 1.15rem;">Profile Information</h3>
+              <h3 style="margin: 0 0 16px; font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-user-gear" style="color: var(--green);"></i>
+                Profile Information
+              </h3>
 
               <form id="profileSettingsForm">
                 <div class="form-grid">
@@ -887,33 +899,121 @@
                 </div>
 
                 <button type="submit" class="btn btn-primary" id="saveProfileBtn">
-                  💾 Save Profile Changes
+                  <i class="fa-solid fa-floppy-disk"></i> Save Profile Changes
                 </button>
               </form>
             </div>
 
-            <div class="panel">
-              <h3 style="margin: 0 0 16px; font-size: 1.15rem;">Security &amp; Preferences</h3>
+            <!-- SECURITY & PASSWORD SECTION -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+              <!-- ACCOUNT IDENTITY SUMMARY -->
+              <div class="panel" style="margin-bottom: 0;">
+                <h3 style="margin: 0 0 14px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+                  <i class="fa-solid fa-id-badge" style="color: var(--cyan);"></i>
+                  Account Identity &amp; Role
+                </h3>
 
-              <div class="form-group">
-                <label class="form-label">Account Role</label>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span class="badge safe" id="settingsRoleBadge">Standard Analyst</span>
-                  <small style="color: var(--muted); font-size: 0.72rem;">Managed by Lead Associate</small>
+                <div class="form-group" style="margin-bottom: 12px;">
+                  <label class="form-label">Account Role</label>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="badge safe" id="settingsRoleBadge">Standard Analyst</span>
+                    <small style="color: var(--muted); font-size: 0.72rem;">Managed by Lead Associate</small>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label">Account UID</label>
+                  <code style="font-size: 0.76rem; color: #a7f3d0; word-break: break-all;" id="settingsUid">—</code>
                 </div>
               </div>
 
-              <div class="form-group">
-                <label class="form-label">Account UID</label>
-                <code style="font-size: 0.76rem; color: #a7f3d0; word-break: break-all;" id="settingsUid">—</code>
-              </div>
+              <!-- NATIVE PASSWORD UPDATE CARD -->
+              <div class="panel" id="passwordSecurityCard">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                  <div>
+                    <small style="color: var(--green); font-size: 0.68rem; font-weight: 800; letter-spacing: 1px;">CREDENTIAL SECURITY</small>
+                    <h3 style="margin: 3px 0 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
+                      <i class="fa-solid fa-shield-halved" style="color: var(--green);"></i>
+                      Password &amp; Credentials
+                    </h3>
+                  </div>
+                  <span class="badge safe"><i class="fa-solid fa-lock"></i> AES-256</span>
+                </div>
 
-              <div style="border-top: 1px solid var(--line-subtle); padding-top: 16px; margin-top: 16px;">
-                <h4 style="margin: 0 0 10px; font-size: 0.9rem;">Password &amp; Credentials</h4>
-                <p style="font-size: 0.78rem; color: var(--muted); margin: 0 0 12px;">Need to update your login password? Use our secure self-service password update.</p>
-                <a href="update-password.html" class="btn btn-secondary btn-sm">
-                  🔑 Change Password
-                </a>
+                <form id="changePasswordForm">
+                  <!-- Current Password -->
+                  <div class="form-group">
+                    <label class="form-label" for="currentPassword">Current Password</label>
+                    <div class="password-input-wrap">
+                      <i class="fa-solid fa-lock input-lead-icon"></i>
+                      <input type="password" class="form-input has-lead-icon" id="currentPassword" placeholder="Enter your current password" autocomplete="current-password" required>
+                      <button type="button" class="password-eye-btn" data-target="currentPassword" aria-label="Toggle current password visibility">
+                        <i class="fa-solid fa-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- New Password -->
+                  <div class="form-group">
+                    <label class="form-label" for="newPassword">New Password</label>
+                    <div class="password-input-wrap">
+                      <i class="fa-solid fa-key input-lead-icon"></i>
+                      <input type="password" class="form-input has-lead-icon" id="newPassword" placeholder="Minimum 8 characters" minlength="8" autocomplete="new-password" required>
+                      <button type="button" class="password-eye-btn" data-target="newPassword" aria-label="Toggle new password visibility">
+                        <i class="fa-solid fa-eye"></i>
+                      </button>
+                    </div>
+
+                    <!-- Password Strength Meter -->
+                    <div class="password-strength-container" id="passwordStrengthBox">
+                      <div class="strength-header">
+                        <span class="strength-label">Password Strength:</span>
+                        <span class="strength-text" id="strengthText">Too Short</span>
+                      </div>
+                      <div class="strength-bar-track">
+                        <div class="strength-bar-fill" id="strengthFill"></div>
+                      </div>
+
+                      <ul class="password-criteria-list">
+                        <li class="criteria-item" id="crit-len">
+                          <i class="fa-regular fa-circle"></i> At least 8 characters
+                        </li>
+                        <li class="criteria-item" id="crit-upper">
+                          <i class="fa-regular fa-circle"></i> Uppercase letter (A-Z)
+                        </li>
+                        <li class="criteria-item" id="crit-lower">
+                          <i class="fa-regular fa-circle"></i> Lowercase letter (a-z)
+                        </li>
+                        <li class="criteria-item" id="crit-num">
+                          <i class="fa-regular fa-circle"></i> Number (0-9)
+                        </li>
+                        <li class="criteria-item" id="crit-special">
+                          <i class="fa-regular fa-circle"></i> Special symbol (!@#$%^&*)
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <!-- Confirm New Password -->
+                  <div class="form-group">
+                    <label class="form-label" for="confirmPassword">Confirm New Password</label>
+                    <div class="password-input-wrap">
+                      <i class="fa-solid fa-shield-halved input-lead-icon"></i>
+                      <input type="password" class="form-input has-lead-icon" id="confirmPassword" placeholder="Re-enter your new password" autocomplete="new-password" required>
+                      <button type="button" class="password-eye-btn" data-target="confirmPassword" aria-label="Toggle confirm password visibility">
+                        <i class="fa-solid fa-eye"></i>
+                      </button>
+                    </div>
+                    <div id="passwordMatchFeedback" style="font-size: 0.74rem; margin-top: 5px; display: none;"></div>
+                  </div>
+
+                  <!-- Feedback Message Alert Box -->
+                  <div id="passwordAlertBox" class="password-feedback" style="display: none;"></div>
+
+                  <button type="submit" class="btn btn-primary" id="changePasswordBtn" style="width: 100%; margin-top: 14px;">
+                    <i class="fa-solid fa-key"></i> Update Password
+                  </button>
+                </form>
               </div>
             </div>
           </div>
@@ -929,8 +1029,11 @@
   <div class="modal-backdrop" id="complaintModal">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>🚨 Raise Cyber Crime Complaint</h3>
-        <button class="modal-close-btn" onclick="closeModal('complaintModal')">✕</button>
+        <h3 style="display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-triangle-exclamation" style="color: var(--red);"></i>
+          Raise Cyber Crime Complaint
+        </h3>
+        <button class="modal-close-btn" onclick="closeModal('complaintModal')"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <form id="newComplaintForm">
@@ -943,14 +1046,14 @@
             <div class="form-group">
               <label class="form-label">Complaint Category</label>
               <select class="form-select" id="cmpType" required>
-                <option value="Financial / Banking Fraud">💳 Financial / Banking Fraud</option>
-                <option value="Phishing & Credential Theft">🌐 Phishing &amp; Credential Theft</option>
-                <option value="Identity Theft & KYC Abuse">🪪 Identity Theft &amp; KYC Abuse</option>
-                <option value="Social Media Impersonation / Harassment">💬 Social Media Impersonation / Harassment</option>
-                <option value="Ransomware & Extortion">🔒 Ransomware &amp; Extortion</option>
-                <option value="Malware & Remote Access Attack">🦠 Malware &amp; Remote Access Attack</option>
-                <option value="Unauthorized Account Takeover">🔓 Unauthorized Account Takeover</option>
-                <option value="Other Cyber Incident">⚠️ Other Cyber Incident</option>
+                <option value="Financial / Banking Fraud">Financial / Banking Fraud</option>
+                <option value="Phishing & Credential Theft">Phishing &amp; Credential Theft</option>
+                <option value="Identity Theft & KYC Abuse">Identity Theft &amp; KYC Abuse</option>
+                <option value="Social Media Impersonation / Harassment">Social Media Impersonation / Harassment</option>
+                <option value="Ransomware & Extortion">Ransomware &amp; Extortion</option>
+                <option value="Malware & Remote Access Attack">Malware &amp; Remote Access Attack</option>
+                <option value="Unauthorized Account Takeover">Unauthorized Account Takeover</option>
+                <option value="Other Cyber Incident">Other Cyber Incident</option>
               </select>
             </div>
 
@@ -989,7 +1092,8 @@
               <div class="file-dropzone" id="fileDropzone">
                 <input type="file" id="cmpEvidenceFile" accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.docx,.csv">
                 <div class="file-dropzone-label">
-                  📁 <strong>Click or drag &amp; drop file here</strong><br>
+                  <i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.6rem; color: var(--green); display: block; margin-bottom: 6px;"></i>
+                  <strong>Click or drag &amp; drop file here</strong><br>
                   <span style="font-size: 0.72rem; color: var(--muted);">Allowed: PNG, JPG, WEBP, PDF, TXT, DOCX (Max 10MB)</span>
                 </div>
               </div>
@@ -1001,7 +1105,7 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeModal('complaintModal')">Cancel</button>
           <button type="submit" class="btn btn-primary" id="submitComplaintBtn">
-            🚀 Submit Complaint
+            <i class="fa-solid fa-paper-plane"></i> Submit Complaint
           </button>
         </div>
       </form>
@@ -1014,8 +1118,11 @@
   <div class="modal-backdrop" id="ticketModal">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>🎫 Open Support Ticket</h3>
-        <button class="modal-close-btn" onclick="closeModal('ticketModal')">✕</button>
+        <h3 style="display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-ticket" style="color: var(--green);"></i>
+          Open Support Ticket
+        </h3>
+        <button class="modal-close-btn" onclick="closeModal('ticketModal')"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <form id="newTicketForm">
@@ -1058,7 +1165,7 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeModal('ticketModal')">Cancel</button>
           <button type="submit" class="btn btn-primary" id="submitTicketBtn">
-            🎫 Create Ticket
+            <i class="fa-solid fa-ticket"></i> Create Ticket
           </button>
         </div>
       </form>
@@ -1072,7 +1179,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h3 id="viewCmpHeader">Complaint Details</h3>
-        <button class="modal-close-btn" onclick="closeModal('viewComplaintModal')">✕</button>
+        <button class="modal-close-btn" onclick="closeModal('viewComplaintModal')"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="modal-body" id="viewCmpBody">
         Loading complaint record...
@@ -1087,10 +1194,12 @@
        MODAL 4: VIEW TICKET DETAILS
        ========================================================= -->
   <div class="modal-backdrop" id="viewTicketModal">
-    <div class="modal-card">
+    <div class="modal-card" style="max-width: 740px;">
       <div class="modal-header">
-        <h3 id="viewTckHeader">Ticket Details</h3>
-        <button class="modal-close-btn" onclick="closeModal('viewTicketModal')">✕</button>
+        <h3 id="viewTckHeader" style="display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-ticket" style="color: var(--cyan);"></i> Ticket Details
+        </h3>
+        <button class="modal-close-btn" onclick="closeModal('viewTicketModal')"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="modal-body" id="viewTckBody">
         Loading ticket record...

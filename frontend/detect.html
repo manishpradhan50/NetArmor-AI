@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Threat Scanner - NetArmor AI</title>
   <link rel="icon" type="image/png" href="images/logo.png">
-  <link rel="shortcut icon" type="image/png" href="images/logo.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="detect.css">
 </head>
 <body>
@@ -82,8 +82,8 @@
 
         <!-- Dark / Light Mode Switcher -->
         <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle Theme">
-          <span class="sun-icon">☀️</span>
-          <span class="moon-icon">🌙</span>
+          <span class="sun-icon"><i class="fa-solid fa-sun"></i></span>
+          <span class="moon-icon"><i class="fa-solid fa-moon"></i></span>
         </button>
 
         <a href="dashboard.html" class="nav-cta" id="navDashboardBtn" style="display: none; padding: 6px 14px; font-size: 0.8rem; text-decoration: none;">Dashboard</a>
@@ -100,16 +100,16 @@
       <!-- Operation Tab Navigation (4 Modules) -->
       <div class="tab-header">
         <button class="tab-btn active" id="tab-btn-url" onclick="switchTab('url')">
-          🌐 Website URL Scanner
+          <i class="fa-solid fa-globe"></i> Website URL Scanner
         </button>
         <button class="tab-btn" id="tab-btn-email" onclick="switchTab('email')">
-          ✉️ Email Content NLP Scanner
+          <i class="fa-solid fa-envelope"></i> Email Content NLP Scanner
         </button>
         <button class="tab-btn" id="tab-btn-message" onclick="switchTab('message')">
-          💬 SMS / Smishing Scanner
+          <i class="fa-solid fa-comment-sms"></i> SMS / Smishing Scanner
         </button>
         <button class="tab-btn" id="tab-btn-document" onclick="switchTab('document')">
-          📄 PDF Document Scanner
+          <i class="fa-solid fa-file-pdf"></i> PDF Document Scanner
         </button>
       </div>
 
@@ -223,7 +223,7 @@
           <div class="dropzone-box" id="dropZone" onclick="document.getElementById('docFileInput').click()">
             <input type="file" id="docFileInput" accept=".pdf" style="display: none;" onchange="handleFileSelected(event)" />
             <div class="dropzone-content">
-              <span class="dropzone-icon">📁</span>
+              <span class="dropzone-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
               <h4 id="dropZoneTitle">Drag &amp; Drop PDF Document Here</h4>
               <p id="dropZoneSub">or click to browse files (.pdf supported)</p>
             </div>
@@ -263,7 +263,7 @@
   <!-- Floating AI Assistant Chatbot Widget -->
   <div id="chatWidget" class="chat-widget">
     <button id="chatToggleBtn" class="chat-toggle-btn" aria-label="Open AI Assistant">
-      <span class="bot-icon">💬</span>
+      <span class="bot-icon"><i class="fa-solid fa-robot"></i></span>
       <span class="chat-badge">AI</span>
     </button>
 
@@ -278,12 +278,12 @@
             <span class="online-status"><span class="status-dot-mini"></span> Online • NetArmor Assistant</span>
           </div>
         </div>
-        <button id="closeChatBtn" class="chat-close" aria-label="Close Chat">✕</button>
+        <button id="closeChatBtn" class="chat-close" aria-label="Close Chat"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <div id="chatMessages" class="chat-messages">
         <div class="bot-msg">
-          👋 Hi! I'm <strong>ArmorBot</strong>. Ask me anything about how NetArmor AI scans URLs, detects phishing emails, checks SMS messages, or inspects documents[cite: 1, 2]!
+          <i class="fa-solid fa-shield-halved" style="color: var(--neon-green); margin-right: 4px;"></i> Hi! I'm <strong>ArmorBot</strong>. Ask me anything about how NetArmor AI scans URLs, detects phishing emails, checks SMS messages, or inspects documents!
         </div>
       </div>
 
@@ -299,8 +299,8 @@
   </div>
 
   <!-- Telemetry Scan Recorded Toast -->
-  <div id="scanToast" style="position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(6, 26, 17, 0.95); border: 1px solid var(--neon-green); color: var(--neon-green); padding: 10px 22px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; box-shadow: 0 10px 25px rgba(0, 255, 136, 0.3); z-index: 9999; transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; opacity: 0;">
-    ✓ Telemetry record saved to your NetArmor dashboard
+  <div id="scanToast" style="position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(6, 26, 17, 0.95); border: 1px solid var(--neon-green); color: var(--neon-green); padding: 10px 22px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; box-shadow: 0 10px 25px rgba(0, 255, 136, 0.3); z-index: 9999; transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; opacity: 0; display: flex; align-items: center; gap: 8px;">
+    <i class="fa-solid fa-circle-check"></i> <span>Telemetry record saved to your NetArmor dashboard</span>
   </div>
 
   <!-- Firebase & NetArmor Config -->

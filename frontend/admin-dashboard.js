@@ -72,31 +72,31 @@ function timeAgo(value) {
 
 function formatScanType(type) {
   switch (type) {
-    case "url": return "🌐 URL";
-    case "email": return "✉️ Email";
-    case "message": return "💬 SMS";
-    case "document": return "📄 PDF";
+    case "url": return '<i class="fa-solid fa-globe"></i> URL';
+    case "email": return '<i class="fa-solid fa-envelope"></i> Email';
+    case "message": return '<i class="fa-solid fa-comment-sms"></i> SMS';
+    case "document": return '<i class="fa-solid fa-file-lines"></i> PDF';
     default: return esc(type || "General");
   }
 }
 
 function getStatusBadge(status) {
-  const s = String(status || "Submitted").toLowerCase();
-  if (s.includes("submitted")) return `<span class="badge submitted">📝 Submitted</span>`;
-  if (s.includes("review")) return `<span class="badge review">🔍 Under Review</span>`;
-  if (s.includes("progress")) return `<span class="badge progress">⚙️ In Progress</span>`;
-  if (s.includes("resolved")) return `<span class="badge resolved">✅ Resolved</span>`;
-  if (s.includes("closed")) return `<span class="badge closed">📁 Closed</span>`;
-  if (s.includes("open")) return `<span class="badge submitted">🟢 Open</span>`;
-  return `<span class="badge closed">${esc(status)}</span>`;
+  const s = String(status || "Open").toLowerCase();
+  if (s === "open" || s.includes("open")) return `<span class="badge open"><i class="fa-solid fa-circle-dot"></i> Open</span>`;
+  if (s.includes("submitted")) return `<span class="badge submitted"><i class="fa-solid fa-file-arrow-up"></i> Submitted</span>`;
+  if (s.includes("review")) return `<span class="badge review"><i class="fa-solid fa-magnifying-glass"></i> Under Review</span>`;
+  if (s.includes("progress")) return `<span class="badge progress"><i class="fa-solid fa-arrows-rotate fa-spin"></i> In Progress</span>`;
+  if (s.includes("resolved") || s.includes("safe")) return `<span class="badge resolved"><i class="fa-solid fa-circle-check"></i> Resolved</span>`;
+  if (s.includes("closed")) return `<span class="badge closed"><i class="fa-solid fa-lock"></i> Closed</span>`;
+  return `<span class="badge open"><i class="fa-solid fa-circle-dot"></i> ${esc(status)}</span>`;
 }
 
 function getPriorityBadge(priority) {
   const p = String(priority || "Medium").toLowerCase();
-  if (p === "critical") return `<span class="badge critical">⚡ Critical</span>`;
-  if (p === "high") return `<span class="badge high">🔴 High</span>`;
-  if (p === "medium") return `<span class="badge medium">🟠 Medium</span>`;
-  return `<span class="badge low">🔵 Low</span>`;
+  if (p === "critical") return `<span class="badge critical"><i class="fa-solid fa-bolt"></i> Critical</span>`;
+  if (p === "high") return `<span class="badge high"><i class="fa-solid fa-circle-exclamation"></i> High</span>`;
+  if (p === "medium") return `<span class="badge medium"><i class="fa-solid fa-triangle-exclamation"></i> Medium</span>`;
+  return `<span class="badge low"><i class="fa-solid fa-circle-info"></i> Low</span>`;
 }
 
 /* =========================================================
@@ -109,8 +109,12 @@ function showToast(message, type = "success") {
 
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
-  const icon = type === "success" ? "✓" : type === "error" ? "✕" : "ℹ";
-  toast.innerHTML = `<span style="font-weight:900; font-size:1rem;">${icon}</span> <span>${esc(message)}</span>`;
+  const icon = type === "success" 
+    ? '<i class="fa-solid fa-circle-check" style="color: var(--green);"></i>' 
+    : type === "error" 
+    ? '<i class="fa-solid fa-circle-xmark" style="color: var(--red);"></i>' 
+    : '<i class="fa-solid fa-circle-info" style="color: var(--cyan);"></i>';
+  toast.innerHTML = `<span style="font-size:1rem; display:inline-flex; align-items:center;">${icon}</span> <span>${esc(message)}</span>`;
 
   container.appendChild(toast);
   setTimeout(() => {
@@ -182,11 +186,20 @@ window.switchTab = function (tabName) {
     $("currentViewTitle").textContent = titles[tabName] || "Command Center";
   }
 
-  const sidebar = $("sidebar");
-  if (sidebar && sidebar.classList.contains("mobile-open")) {
-    sidebar.classList.remove("mobile-open");
-  }
+  closeMobileSidebar();
 };
+
+function closeMobileSidebar() {
+  $("sidebar")?.classList.remove("mobile-open");
+  $("sidebarBackdrop")?.classList.remove("active");
+  document.body.style.overflow = "";
+}
+
+function openMobileSidebar() {
+  $("sidebar")?.classList.add("mobile-open");
+  $("sidebarBackdrop")?.classList.add("active");
+  document.body.style.overflow = "hidden";
+}
 
 document.querySelectorAll(".nav-item[data-tab]").forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -195,8 +208,15 @@ document.querySelectorAll(".nav-item[data-tab]").forEach((btn) => {
 });
 
 $("menuToggle")?.addEventListener("click", () => {
-  $("sidebar")?.classList.toggle("mobile-open");
+  const isOpen = $("sidebar")?.classList.contains("mobile-open");
+  if (isOpen) {
+    closeMobileSidebar();
+  } else {
+    openMobileSidebar();
+  }
 });
+$("sidebarCloseBtn")?.addEventListener("click", closeMobileSidebar);
+$("sidebarBackdrop")?.addEventListener("click", closeMobileSidebar);
 
 /* =========================================================
    INITIALIZATION & ROLE VALIDATION
@@ -326,7 +346,7 @@ function renderUsersTable(rows) {
         </td>
         <td>
           <span class="badge ${isAssoc ? "threat" : "safe"}">
-            ${isAssoc ? "🛡️ Associate Lead" : "👤 Standard Analyst"}
+            ${isAssoc ? '<i class="fa-solid fa-user-shield"></i> Associate Lead' : '<i class="fa-solid fa-user"></i> Standard Analyst'}
           </span>
         </td>
         <td style="color: var(--muted); font-size: 0.76rem;">
@@ -335,10 +355,10 @@ function renderUsersTable(rows) {
         <td>
           <div style="display: flex; gap: 6px;">
             <button class="btn btn-secondary btn-sm" onclick="editUserRole('${u.id}', '${esc(u.username || u.email)}', '${esc(u.email)}', '${u.role || "user"}')">
-              Role
+              <i class="fa-solid fa-user-gear"></i> Role
             </button>
             <button class="btn btn-primary btn-sm" onclick="openChangePasswordModal('${u.id}', '${esc(u.username || u.full_name || u.email)}', '${esc(u.email)}')">
-              🔑 Password
+              <i class="fa-solid fa-key"></i> Password
             </button>
           </div>
         </td>
@@ -409,21 +429,21 @@ $("openAddUserModalBtn")?.addEventListener("click", () => {
   if (form) form.reset();
   const pwdInput = $("newPassword");
   if (pwdInput) pwdInput.type = "password";
-  const toggleBtn = $("toggleNewPasswordBtn");
-  if (toggleBtn) toggleBtn.textContent = "👁";
+  const icon = $("toggleNewPasswordBtn")?.querySelector("i");
+  if (icon) icon.className = "fa-solid fa-eye";
   openModal("addUserModal");
 });
 
 $("toggleNewPasswordBtn")?.addEventListener("click", () => {
   const pwdInput = $("newPassword");
-  const toggleBtn = $("toggleNewPasswordBtn");
+  const icon = $("toggleNewPasswordBtn")?.querySelector("i");
   if (!pwdInput) return;
   if (pwdInput.type === "password") {
     pwdInput.type = "text";
-    if (toggleBtn) toggleBtn.textContent = "🙈";
+    if (icon) icon.className = "fa-solid fa-eye-slash";
   } else {
     pwdInput.type = "password";
-    if (toggleBtn) toggleBtn.textContent = "👁";
+    if (icon) icon.className = "fa-solid fa-eye";
   }
 });
 
@@ -532,14 +552,14 @@ window.openChangePasswordModal = function (userId, displayName, email) {
   const isSelf = currentAdminUser && (userId === currentAdminUser.uid || email.toLowerCase() === (currentAdminUser.email || "").toLowerCase());
 
   if (isSelf) {
-    if ($("pwdModalTitle")) $("pwdModalTitle").textContent = "🔑 Change Your Admin Password";
+    if ($("pwdModalTitle")) $("pwdModalTitle").innerHTML = '<i class="fa-solid fa-key" style="color: var(--amber);"></i> Change Your Admin Password';
     if ($("adminSelfPasswordForm")) {
       $("adminSelfPasswordForm").style.display = "block";
       $("adminSelfPasswordForm").reset();
     }
     if ($("otherUserPasswordSection")) $("otherUserPasswordSection").style.display = "none";
   } else {
-    if ($("pwdModalTitle")) $("pwdModalTitle").textContent = `🔑 Password Reset: ${displayName || email}`;
+    if ($("pwdModalTitle")) $("pwdModalTitle").innerHTML = `<i class="fa-solid fa-key" style="color: var(--amber);"></i> Password Reset: ${esc(displayName || email)}`;
     if ($("adminSelfPasswordForm")) $("adminSelfPasswordForm").style.display = "none";
     if ($("otherUserPasswordSection")) $("otherUserPasswordSection").style.display = "block";
   }
@@ -580,7 +600,7 @@ $("adminSelfPasswordForm")?.addEventListener("submit", async (e) => {
   const origText = saveBtn ? saveBtn.innerHTML : "";
   if (saveBtn) {
     saveBtn.disabled = true;
-    saveBtn.innerHTML = `<span>🔒 Updating Password...</span>`;
+    saveBtn.innerHTML = `<span><i class="fa-solid fa-spinner fa-spin"></i> Updating Password...</span>`;
   }
 
   try {
@@ -596,6 +616,33 @@ $("adminSelfPasswordForm")?.addEventListener("submit", async (e) => {
       saveBtn.disabled = false;
       saveBtn.innerHTML = origText;
     }
+  }
+});
+
+// Admin modal password eye toggles
+document.querySelectorAll(".password-eye-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const targetId = btn.dataset.target || btn.getAttribute("data-target");
+    const input = targetId ? $(targetId) : null;
+    if (!input) return;
+    const isPassword = input.type === "password";
+    input.type = isPassword ? "text" : "password";
+    const icon = btn.querySelector("i");
+    if (icon) {
+      icon.className = isPassword ? "fa-solid fa-eye-slash" : "fa-solid fa-eye";
+    }
+  });
+});
+
+$("toggleNewPasswordBtn")?.addEventListener("click", () => {
+  const input = $("newPassword");
+  const btn = $("toggleNewPasswordBtn");
+  if (!input || !btn) return;
+  const isPassword = input.type === "password";
+  input.type = isPassword ? "text" : "password";
+  const icon = btn.querySelector("i");
+  if (icon) {
+    icon.className = isPassword ? "fa-solid fa-eye-slash" : "fa-solid fa-eye";
   }
 });
 
@@ -616,7 +663,7 @@ $("sendUserResetLinkBtn")?.addEventListener("click", async () => {
   const origText = btn ? btn.innerHTML : "";
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = `<span>⏳ Sending Link...</span>`;
+    btn.innerHTML = `<span><i class="fa-solid fa-spinner fa-spin"></i> Sending Link...</span>`;
   }
 
   try {
@@ -890,7 +937,7 @@ window.openTriageModal = function (docId) {
   if ($("triageUserId")) $("triageUserId").value = c.user_id || "";
   if ($("triageCmpId")) $("triageCmpId").value = c.complaint_id || "";
 
-  if ($("triageModalTitle")) $("triageModalTitle").textContent = `🚨 Triage Incident: ${c.complaint_id}`;
+  if ($("triageModalTitle")) $("triageModalTitle").innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color: var(--amber);"></i> Triage Incident: ${esc(c.complaint_id)}`;
   if ($("triageIncidentName")) $("triageIncidentName").textContent = c.title;
   if ($("triagePriorityBadge")) $("triagePriorityBadge").innerHTML = getPriorityBadge(c.priority);
   if ($("triageMetaInfo")) {
@@ -903,7 +950,7 @@ window.openTriageModal = function (docId) {
   const linkArea = $("triageEvidenceLinkArea");
   if (linkArea) {
     linkArea.innerHTML = c.evidence_url
-      ? `<a href="${esc(c.evidence_url)}" target="_blank" class="uploaded-file-pill" style="text-decoration:none;">📎 Attached Evidence: ${esc(c.evidence_filename || "View File")} →</a>`
+      ? `<a href="${esc(c.evidence_url)}" target="_blank" class="uploaded-file-pill" style="text-decoration:none;"><i class="fa-solid fa-paperclip"></i> Attached Evidence: ${esc(c.evidence_filename || "View File")} →</a>`
       : `<span style="font-size: 0.74rem; color: var(--muted);">No attached evidence file. Ref: ${esc(c.reference_info || "None")}</span>`;
   }
 
@@ -924,7 +971,7 @@ $("triageForm")?.addEventListener("submit", async (e) => {
   const btn = $("saveTriageBtn");
   if (btn) {
     btn.disabled = true;
-    btn.textContent = "Updating...";
+    btn.innerHTML = `<i class="fa-solid fa-arrows-rotate fa-spin"></i> Updating...`;
   }
 
   try {
@@ -964,7 +1011,7 @@ $("triageForm")?.addEventListener("submit", async (e) => {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "💾 Update Incident Status";
+      btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Update Incident Status`;
     }
   }
 });
@@ -1024,7 +1071,7 @@ function renderAdminTicketsTable(rows) {
       <td style="color: var(--muted); font-size: 0.76rem;">${fmtDate(t.created_at)}</td>
       <td>
         <button class="btn btn-secondary btn-sm" onclick="openManageTicketModal('${t.id}')">
-          Resolve
+          <i class="fa-solid fa-headset"></i> Resolve
         </button>
       </td>
     </tr>
@@ -1063,14 +1110,62 @@ window.openManageTicketModal = function (docId) {
   if ($("manageTicketUserId")) $("manageTicketUserId").value = t.user_id || "";
   if ($("manageTicketIdVal")) $("manageTicketIdVal").value = t.ticket_id || "";
 
-  if ($("manageTicketTitle")) $("manageTicketTitle").textContent = `🎫 Manage Ticket: ${t.ticket_id}`;
-  if ($("manageTicketSubjectText")) $("manageTicketSubjectText").textContent = t.subject;
-  if ($("manageTicketUserMeta")) {
-    $("manageTicketUserMeta").textContent = `From: ${t.user_email} • Category: ${t.category} • Date: ${fmtDate(t.created_at)}`;
-  }
-  if ($("manageTicketMessageText")) $("manageTicketMessageText").textContent = t.message || "";
+  if ($("manageTicketTitle")) $("manageTicketTitle").innerHTML = `<i class="fa-solid fa-headset" style="color: var(--cyan);"></i> Manage Ticket: ${esc(t.ticket_id || "Ticket")}`;
+  if ($("manageTicketSubjectText")) $("manageTicketSubjectText").textContent = t.subject || "No Subject";
+  if ($("manageTicketPriorityBadge")) $("manageTicketPriorityBadge").innerHTML = getPriorityBadge(t.priority);
+  if ($("manageTicketStatusBadge")) $("manageTicketStatusBadge").innerHTML = getStatusBadge(t.status);
+
+  if ($("manageTicketIdDisplay")) $("manageTicketIdDisplay").textContent = t.ticket_id || "—";
+  if ($("manageTicketUserEmailDisplay")) $("manageTicketUserEmailDisplay").textContent = t.user_email || "Anonymous";
+  if ($("manageTicketCategoryDisplay")) $("manageTicketCategoryDisplay").textContent = t.category || "General";
+  if ($("manageTicketCreatedDisplay")) $("manageTicketCreatedDisplay").textContent = fmtDate(t.created_at);
+  if ($("manageTicketUpdatedDisplay")) $("manageTicketUpdatedDisplay").textContent = fmtDate(t.updated_at || t.created_at);
+
+  if ($("manageTicketMessageText")) $("manageTicketMessageText").textContent = t.message || t.description || "No inquiry description provided.";
   if ($("manageTicketStatusSelect")) $("manageTicketStatusSelect").value = t.status || "Open";
-  if ($("manageTicketStaffNote")) $("manageTicketStaffNote").value = t.resolution_note || "";
+  if ($("manageTicketStaffNote")) $("manageTicketStaffNote").value = "";
+
+  // Render Full Conversation Thread
+  const thread = $("manageTicketConversationThread");
+  if (thread) {
+    const replies = Array.isArray(t.replies) ? t.replies : [];
+    if (replies.length === 0 && !t.resolution_note) {
+      thread.innerHTML = `<div class="empty" style="padding: 12px !important;">No message exchanges recorded yet.</div>`;
+    } else {
+      let threadHtml = "";
+      if (t.resolution_note && !replies.some((r) => r.message === t.resolution_note)) {
+        threadHtml += `
+          <div class="conversation-bubble admin">
+            <div class="bubble-header">
+              <span class="bubble-sender"><i class="fa-solid fa-user-shield"></i> SOC Support Lead</span>
+              <span class="bubble-time">${fmtDate(t.updated_at || t.created_at)}</span>
+            </div>
+            <div class="bubble-text">${esc(t.resolution_note)}</div>
+          </div>
+        `;
+      }
+
+      threadHtml += replies.map((r) => {
+        const isAdmin = r.sender === "admin" || r.sender === "staff";
+        const senderLabel = isAdmin ? (r.sender_name || "SOC Support Team") : (r.sender_name || t.user_email || "Analyst");
+        const senderIcon = isAdmin ? '<i class="fa-solid fa-user-shield"></i> ' : '<i class="fa-solid fa-user"></i> ';
+        const timeVal = r.created_at || r.timestamp;
+        const timeStr = timeVal ? fmtDate(timeVal) : "Recent";
+        return `
+          <div class="conversation-bubble ${isAdmin ? "admin" : "user"}">
+            <div class="bubble-header">
+              <span class="bubble-sender">${senderIcon}${esc(senderLabel)}</span>
+              <span class="bubble-time">${timeStr}</span>
+            </div>
+            <div class="bubble-text">${esc(r.message || "")}</div>
+          </div>
+        `;
+      }).join("");
+
+      thread.innerHTML = threadHtml;
+      thread.scrollTop = thread.scrollHeight;
+    }
+  }
 
   openModal("manageTicketModal");
 };
@@ -1083,7 +1178,7 @@ $("manageTicketForm")?.addEventListener("submit", async (e) => {
   const btn = $("saveTicketBtn");
   if (btn) {
     btn.disabled = true;
-    btn.textContent = "Updating...";
+    btn.innerHTML = `<i class="fa-solid fa-arrows-rotate fa-spin"></i> Updating...`;
   }
 
   try {
@@ -1093,24 +1188,39 @@ $("manageTicketForm")?.addEventListener("submit", async (e) => {
     const newStatus = $("manageTicketStatusSelect")?.value;
     const staffNote = $("manageTicketStaffNote")?.value.trim();
 
-    await db.collection("support_tickets").doc(docId).update({
+    const updatePayload = {
       status: newStatus,
-      resolution_note: staffNote,
       updated_at: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    };
+
+    if (staffNote) {
+      updatePayload.resolution_note = staffNote;
+      const nowIso = new Date().toISOString();
+      const replyObj = {
+        sender: "admin",
+        sender_name: currentAdminProfile?.full_name || currentAdminProfile?.username || "SOC Support Team",
+        sender_email: currentAdminUser?.email || "support@netarmor-ai.com",
+        message: staffNote,
+        created_at: nowIso,
+        timestamp: nowIso
+      };
+      updatePayload.replies = firebase.firestore.FieldValue.arrayUnion(replyObj);
+    }
+
+    await db.collection("support_tickets").doc(docId).update(updatePayload);
 
     if (targetUserId) {
       await db.collection("user_notifications").add({
         user_id: targetUserId,
         title: `Ticket ${tckId} Status: ${newStatus}`,
-        message: staffNote || "Your support inquiry has been reviewed by engineering.",
+        message: staffNote || `Your support inquiry status was updated to ${newStatus}.`,
         type: "ticket",
         read: false,
         created_at: firebase.firestore.FieldValue.serverTimestamp()
       });
     }
 
-    showToast(`Ticket ${tckId} updated!`, "success");
+    showToast(`Ticket ${tckId} updated successfully!`, "success");
     closeModal("manageTicketModal");
     await loadAdminTickets();
 
@@ -1120,7 +1230,7 @@ $("manageTicketForm")?.addEventListener("submit", async (e) => {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "💾 Update Ticket";
+      btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Send Reply &amp; Update Status`;
     }
   }
 });
@@ -1171,7 +1281,8 @@ function renderFeedbackList(rows) {
   }
 
   list.innerHTML = rows.map((f) => {
-    const stars = "★".repeat(Math.max(1, Math.min(5, Number(f.rating) || 5)));
+    const starCount = Math.max(1, Math.min(5, Number(f.rating) || 5));
+    const stars = Array(starCount).fill('<i class="fa-solid fa-star"></i>').join("");
     return `
       <div style="background: rgba(255,255,255,0.02); padding: 14px; border-radius: 12px; border: 1px solid var(--line-subtle);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -1292,7 +1403,7 @@ document.addEventListener("click", (e) => {
 /* PING HEALTH */
 $("pingHealthBtn")?.addEventListener("click", async () => {
   const btn = $("pingHealthBtn");
-  if (btn) btn.textContent = "⚡ Pinging...";
+  if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Pinging...';
 
   try {
     const apiBase = typeof window.resolveNetArmorApi === "function" ? await window.resolveNetArmorApi() : "http://127.0.0.1:8000";
@@ -1312,7 +1423,7 @@ $("pingHealthBtn")?.addEventListener("click", async () => {
     if ($("backendStatusVal")) $("backendStatusVal").textContent = "OFFLINE";
     showToast("Backend connection timed out.", "error");
   } finally {
-    if (btn) btn.textContent = "⚡ Ping Backend Health";
+    if (btn) btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Ping Backend Health';
   }
 });
 
@@ -1393,9 +1504,9 @@ $("adminSidebarLogoutBtn")?.addEventListener("click", handleAdminLogout);
 
 $("refreshAllBtn")?.addEventListener("click", () => {
   const btn = $("refreshAllBtn");
-  if (btn) btn.textContent = "↻ Updating...";
+  if (btn) btn.innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin"></i> Updating...';
   loadAllAdminData().finally(() => {
-    if (btn) btn.textContent = "↻ Refresh Global Telemetry";
+    if (btn) btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Refresh Global Telemetry';
     showToast("Global SOC data updated.", "info");
   });
 });

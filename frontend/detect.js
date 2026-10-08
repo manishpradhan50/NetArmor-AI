@@ -31,7 +31,7 @@ async function getApiBase() {
 function showScanToast(message) {
   const toast = document.getElementById("scanToast");
   if (!toast) return;
-  toast.textContent = message || "✓ Telemetry record saved to your NetArmor dashboard";
+  toast.innerHTML = `<i class="fa-solid fa-circle-check"></i> <span>${message || "Telemetry record saved to your NetArmor dashboard"}</span>`;
   toast.style.opacity = "1";
   toast.style.transform = "translateX(-50%) translateY(0)";
 
@@ -63,7 +63,7 @@ async function recordScan(scanType, target, riskScore) {
       created_at: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    showScanToast("✓ Telemetry record saved to your dashboard history");
+    showScanToast("Telemetry record saved to your dashboard history");
   } catch (error) {
     console.warn("Telemetry record bypassed:", error);
   }
@@ -694,7 +694,7 @@ async function handleSendMessage() {
   // Render Placeholder Shimmer Bubble
   const botBubble = document.createElement("div");
   botBubble.className = "bot-msg loading-shimmer";
-  botBubble.innerText = "⚡ ArmorBot is analyzing...";
+  botBubble.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ArmorBot is analyzing...';
   chatMessages.appendChild(botBubble);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -713,7 +713,7 @@ async function handleSendMessage() {
     botBubble.innerText = data.reply || "No response received.";
   } catch (error) {
     botBubble.className = "bot-msg";
-    botBubble.innerText = "⚠️ Unable to reach ArmorBot core. Ensure FastAPI is running and your GEMINI_API_KEY is configured.";
+    botBubble.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="color: var(--amber);"></i> Unable to reach ArmorBot core. Ensure FastAPI is running and your GEMINI_API_KEY is configured.';
   }
 
   chatMessages.scrollTop = chatMessages.scrollHeight;

@@ -405,6 +405,18 @@
 
     color: #ffffff;
 
+    padding: 10px 12px;
+
+}
+
+select.auth-input {
+    color-scheme: dark;
+    cursor: pointer;
+}
+
+select.auth-input option:checked {
+    background: #00ff88;
+    color: #001f0f;
 }
 
 
@@ -413,6 +425,12 @@
 ========================================================= */
 
 .password-toggle {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
 
     flex-shrink: 0;
 
