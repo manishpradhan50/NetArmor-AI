@@ -307,6 +307,43 @@
 }
 
 
+#registerCard {
+
+    max-width: 520px;
+
+}
+
+
+.form-row {
+
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    gap: 14px;
+
+}
+
+
+@media (max-width: 560px) {
+
+    #registerCard {
+
+        max-width: 100%;
+
+    }
+
+    .form-row {
+
+        grid-template-columns: 1fr;
+
+        gap: 14px;
+
+    }
+
+}
+
+
 /* =========================================================
    INPUT
 ========================================================= */
@@ -478,6 +515,92 @@ select.auth-input option:checked {
 
     margin-top: 1px;
 
+}
+
+
+/* =========================================================
+   USERNAME AVAILABILITY & VALIDATION INDICATORS
+========================================================= */
+
+.username-status-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-left: 6px;
+    font-size: 0.88rem;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.username-status-icon.hidden {
+    display: none;
+}
+
+.username-status-icon.status-checking {
+    color: #38bdf8;
+}
+
+.username-status-icon.status-available {
+    color: #00ff88;
+}
+
+.username-status-icon.status-taken,
+.username-status-icon.status-invalid {
+    color: #ff6b81;
+}
+
+.username-feedback {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.69rem;
+    line-height: 1.35;
+    min-height: 18px;
+    margin-top: 2px;
+    color: rgba(134, 239, 172, 0.62);
+    transition: color 0.2s ease;
+}
+
+.username-feedback .feedback-icon {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.72rem;
+    flex-shrink: 0;
+}
+
+.username-feedback.checking {
+    color: #38bdf8;
+}
+
+.username-feedback.available {
+    color: #00ff88;
+    font-weight: 600;
+}
+
+.username-feedback.taken,
+.username-feedback.invalid {
+    color: #ff6b81;
+    font-weight: 500;
+}
+
+.input-container.input-valid {
+    border-color: #00ff88;
+    background: rgba(4, 26, 16, 0.96);
+    box-shadow: 0 0 0 1px rgba(0, 255, 136, 0.18), 0 0 14px rgba(0, 255, 136, 0.16);
+}
+
+.input-container.input-invalid {
+    border-color: #ff6b81;
+    background: rgba(28, 8, 12, 0.96);
+    box-shadow: 0 0 0 1px rgba(255, 107, 129, 0.18), 0 0 14px rgba(255, 107, 129, 0.16);
+}
+
+.input-container.input-checking {
+    border-color: #38bdf8;
+    background: rgba(5, 20, 30, 0.96);
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.18), 0 0 14px rgba(56, 189, 248, 0.16);
 }
 
 

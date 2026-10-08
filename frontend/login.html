@@ -426,119 +426,287 @@
 
 
 
-        <!-- Username -->
+        <!-- Full Name & Username Row -->
+
+        <div class="form-row">
+
+            <div class="form-group">
+
+                <label for="regFullName">
+                    FULL NAME
+                </label>
+
+
+                <div class="input-container">
+
+                    <span class="input-icon">
+                        <i class="fa-solid fa-id-card"></i>
+                    </span>
+
+
+                    <input
+                        type="text"
+                        id="regFullName"
+                        class="auth-input"
+                        placeholder="e.g. John Doe"
+                        minlength="2"
+                        maxlength="60"
+                        autocomplete="name"
+                        required
+                    >
+
+                </div>
+
+                <small class="field-hint">
+                    Your full legal or analyst name
+                </small>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="regUsername">
+                    USERNAME
+                </label>
+
+
+                <div class="input-container" id="regUsernameContainer">
+
+                    <span class="input-icon">
+                        <i class="fa-solid fa-user"></i>
+                    </span>
+
+
+                    <input
+                        type="text"
+                        id="regUsername"
+                        class="auth-input"
+                        placeholder="Choose username"
+                        minlength="3"
+                        maxlength="30"
+                        autocomplete="username"
+                        required
+                    >
+
+                    <span
+                        class="username-status-icon hidden"
+                        id="regUsernameStatusIcon"
+                        aria-live="polite"
+                    ></span>
+
+                </div>
+
+
+                <div
+                    class="username-feedback"
+                    id="regUsernameFeedback"
+                >
+
+                    <span
+                        class="feedback-icon"
+                        id="regUsernameFeedbackIcon"
+                    >
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+
+                    <span
+                        class="feedback-text"
+                        id="regUsernameFeedbackText"
+                    >
+                        3–30 chars: start with letter (a–z, 0–9, _)
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Email & Phone Row -->
+
+        <div class="form-row">
+
+            <div class="form-group">
+
+                <label for="regEmail">
+                    EMAIL ADDRESS
+                </label>
+
+
+                <div class="input-container">
+
+                    <span class="input-icon">
+                        <i class="fa-solid fa-envelope"></i>
+                    </span>
+
+
+                    <input
+                        type="email"
+                        id="regEmail"
+                        class="auth-input"
+                        placeholder="name@domain.com"
+                        autocomplete="email"
+                        required
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="regPhone">
+                    PHONE NUMBER
+                </label>
+
+
+                <div class="input-container">
+
+                    <span class="input-icon">
+                        <i class="fa-solid fa-phone"></i>
+                    </span>
+
+
+                    <input
+                        type="tel"
+                        id="regPhone"
+                        class="auth-input"
+                        placeholder="+1 (555) 000-0000"
+                        autocomplete="tel"
+                    >
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Organization -->
 
         <div class="form-group">
 
-            <label for="regUsername">
-                USERNAME
+            <label for="regOrganization">
+                ORGANIZATION / SECURITY TEAM
             </label>
 
 
             <div class="input-container">
 
                 <span class="input-icon">
-                    <i class="fa-solid fa-user"></i>
+                    <i class="fa-solid fa-building-shield"></i>
                 </span>
 
 
                 <input
                     type="text"
-                    id="regUsername"
+                    id="regOrganization"
                     class="auth-input"
-                    placeholder="Choose a username"
-                    minlength="3"
-                    maxlength="30"
-                    autocomplete="username"
-                    required
+                    placeholder="e.g. Cyber Threat Defense Lab"
+                    autocomplete="organization"
                 >
 
             </div>
 
-
             <small class="field-hint">
-                3–30 characters: letters, numbers and underscore
+                Optional: Company, agency, or team affiliation
             </small>
 
         </div>
 
 
 
-        <!-- Email -->
+        <!-- Password & Confirm Password Row -->
 
-        <div class="form-group">
+        <div class="form-row">
 
-            <label for="regEmail">
-                EMAIL ADDRESS
-            </label>
+            <div class="form-group">
 
-
-            <div class="input-container">
-
-                <span class="input-icon">
-                    <i class="fa-solid fa-envelope"></i>
-                </span>
+                <label for="regPassword">
+                    PASSWORD
+                </label>
 
 
-                <input
-                    type="email"
-                    id="regEmail"
-                    class="auth-input"
-                    placeholder="name@domain.com"
-                    autocomplete="email"
-                    required
-                >
+                <div class="input-container">
+
+                    <span class="input-icon">
+                        <i class="fa-solid fa-lock"></i>
+                    </span>
+
+
+                    <input
+                        type="password"
+                        id="regPassword"
+                        class="auth-input"
+                        placeholder="Min. 8 characters"
+                        minlength="8"
+                        autocomplete="new-password"
+                        required
+                    >
+
+
+                    <button
+                        type="button"
+                        class="password-toggle"
+                        id="registerPasswordToggle"
+                        aria-label="Show password"
+                    >
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="regConfirmPassword">
+                    CONFIRM PASSWORD
+                </label>
+
+
+                <div class="input-container">
+
+                    <span class="input-icon">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </span>
+
+
+                    <input
+                        type="password"
+                        id="regConfirmPassword"
+                        class="auth-input"
+                        placeholder="Re-enter password"
+                        minlength="8"
+                        autocomplete="new-password"
+                        required
+                    >
+
+
+                    <button
+                        type="button"
+                        class="password-toggle"
+                        id="registerConfirmPasswordToggle"
+                        aria-label="Show password"
+                    >
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+
+                </div>
 
             </div>
 
         </div>
 
-
-
-        <!-- Password -->
-
-        <div class="form-group">
-
-            <label for="regPassword">
-                PASSWORD
-            </label>
-
-
-            <div class="input-container">
-
-                <span class="input-icon">
-                    <i class="fa-solid fa-lock"></i>
-                </span>
-
-
-                <input
-                    type="password"
-                    id="regPassword"
-                    class="auth-input"
-                    placeholder="Create a strong password"
-                    minlength="8"
-                    autocomplete="new-password"
-                    required
-                >
-
-
-                <button
-                    type="button"
-                    class="password-toggle"
-                    id="registerPasswordToggle"
-                    aria-label="Show password"
-                >
-                    <i class="fa-solid fa-eye"></i>
-                </button>
-
-            </div>
-
-
-            <small class="field-hint">
-                Minimum 8 characters
-            </small>
-
-        </div>
+        <small class="field-hint">
+            Minimum 8 characters. Passwords must match.
+        </small>
 
 
 

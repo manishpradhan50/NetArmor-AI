@@ -30,6 +30,16 @@ service cloud.firestore {
       allow delete: if isStaff();
     }
 
+    // 1b. Public Usernames Registry for Availability Check
+    match /usernames/{username} {
+      // Prospective registrants can check if a username is claimed
+      allow read: if true;
+      // Newly created user claims their chosen username during enrollment
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      // Staff can manage or release claimed usernames
+      allow update, delete: if isStaff();
+    }
+
     // 2. Scan History Telemetry Collection
     match /scan_history/{scanId} {
       // Users read their own scan records; staff reads all telemetry for analytics

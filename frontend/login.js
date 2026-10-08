@@ -329,6 +329,296 @@ loginForm?.addEventListener("submit", async (event) => {
 });
 
 /* =========================================================
+   USERNAME VALIDATION & AVAILABILITY ENGINE
+   ========================================================= */
+
+const RESERVED_USERNAMES = new Set([
+  "admin",
+  "administrator",
+  "root",
+  "system",
+  "netarmor",
+  "armorbot",
+  "associate",
+  "support",
+  "security",
+  "moderator",
+  "official",
+  "help",
+  "guest",
+  "staff",
+  "soc",
+  "soc_lead",
+  "user",
+  "null",
+  "undefined",
+  "api"
+]);
+
+let usernameValidationState = {
+  status: "idle",       // 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
+  checkedUsername: "",
+  message: ""
+};
+
+let usernameCheckTimeout = null;
+
+function validateUsernameRules(rawUsername) {
+  const username = (rawUsername || "").trim();
+
+  if (!username) {
+    return {
+      valid: false,
+      reason: "Username is required.",
+      code: "EMPTY"
+    };
+  }
+
+  if (username.length < 3) {
+    return {
+      valid: false,
+      reason: "Minimum 3 characters required.",
+      code: "TOO_SHORT"
+    };
+  }
+
+  if (username.length > 30) {
+    return {
+      valid: false,
+      reason: "Maximum 30 characters allowed.",
+      code: "TOO_LONG"
+    };
+  }
+
+  if (!/^[a-zA-Z]/.test(username)) {
+    return {
+      valid: false,
+      reason: "Must start with a letter (A–Z or a–z).",
+      code: "START_CHAR"
+    };
+  }
+
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    return {
+      valid: false,
+      reason: "Only letters, numbers, and underscores allowed.",
+      code: "INVALID_CHARS"
+    };
+  }
+
+  if (/__/.test(username)) {
+    return {
+      valid: false,
+      reason: "Cannot contain consecutive underscores.",
+      code: "CONSECUTIVE_UNDERSCORES"
+    };
+  }
+
+  if (username.endsWith("_")) {
+    return {
+      valid: false,
+      reason: "Cannot end with an underscore.",
+      code: "TRAILING_UNDERSCORE"
+    };
+  }
+
+  if (RESERVED_USERNAMES.has(username.toLowerCase())) {
+    return {
+      valid: false,
+      reason: "This username is reserved by NetArmor system.",
+      code: "RESERVED"
+    };
+  }
+
+  return { valid: true, reason: "" };
+}
+
+function updateUsernameUI(status, message, iconClass = "") {
+  const container = document.getElementById("regUsernameContainer");
+  const statusIcon = document.getElementById("regUsernameStatusIcon");
+  const feedback = document.getElementById("regUsernameFeedback");
+  const feedbackIcon = document.getElementById("regUsernameFeedbackIcon");
+  const feedbackText = document.getElementById("regUsernameFeedbackText");
+
+  if (!feedback || !feedbackText) return;
+
+  // Reset classes
+  if (container) {
+    container.classList.remove("input-valid", "input-invalid", "input-checking");
+  }
+  feedback.className = "username-feedback";
+  if (statusIcon) {
+    statusIcon.className = "username-status-icon hidden";
+    statusIcon.innerHTML = "";
+  }
+
+  if (status === "idle") {
+    if (feedbackIcon) feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-info"></i>';
+    feedbackText.textContent = message || "3–30 chars: start with letter (a–z, 0–9, _)";
+    return;
+  }
+
+  if (status === "checking") {
+    if (container) container.classList.add("input-checking");
+    feedback.classList.add("checking");
+    if (feedbackIcon) feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+    feedbackText.textContent = message || "Checking availability...";
+    if (statusIcon) {
+      statusIcon.className = "username-status-icon status-checking";
+      statusIcon.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+    }
+    return;
+  }
+
+  if (status === "available") {
+    if (container) container.classList.add("input-valid");
+    feedback.classList.add("available");
+    if (feedbackIcon) feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+    feedbackText.textContent = message || "Username is available!";
+    if (statusIcon) {
+      statusIcon.className = "username-status-icon status-available";
+      statusIcon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+    }
+    return;
+  }
+
+  if (status === "taken") {
+    if (container) container.classList.add("input-invalid");
+    feedback.classList.add("taken");
+    if (feedbackIcon) feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
+    feedbackText.textContent = message || "Username is already taken.";
+    if (statusIcon) {
+      statusIcon.className = "username-status-icon status-taken";
+      statusIcon.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
+    }
+    return;
+  }
+
+  if (status === "invalid") {
+    if (container) container.classList.add("input-invalid");
+    feedback.classList.add("invalid");
+    if (feedbackIcon) feedbackIcon.innerHTML = `<i class="fa-solid ${iconClass || 'fa-triangle-exclamation'}"></i>`;
+    feedbackText.textContent = message;
+    if (statusIcon) {
+      statusIcon.className = "username-status-icon status-invalid";
+      statusIcon.innerHTML = `<i class="fa-solid ${iconClass || 'fa-triangle-exclamation'}"></i>`;
+    }
+  }
+}
+
+async function checkUsernameAvailability(rawUsername) {
+  const username = (rawUsername || "").trim();
+
+  // 1. Format & rule validation
+  const ruleCheck = validateUsernameRules(username);
+  if (!ruleCheck.valid) {
+    if (!username) {
+      usernameValidationState = { status: "idle", checkedUsername: "", message: "" };
+      updateUsernameUI("idle");
+    } else {
+      usernameValidationState = { status: "invalid", checkedUsername: username, message: ruleCheck.reason };
+      updateUsernameUI("invalid", ruleCheck.reason, "fa-circle-xmark");
+    }
+    return false;
+  }
+
+  // 2. Set checking UI state
+  usernameValidationState = { status: "checking", checkedUsername: username, message: "Checking availability..." };
+  updateUsernameUI("checking", "Checking availability in database...");
+
+  const db = getDb();
+  if (!db) {
+    usernameValidationState = { status: "available", checkedUsername: username, message: "Username format valid." };
+    updateUsernameUI("available", "Username format valid.");
+    return true;
+  }
+
+  const usernameLower = username.toLowerCase();
+
+  try {
+    let isTaken = false;
+
+    // 2a. Check dedicated usernames registry
+    try {
+      const usernameDoc = await db.collection("usernames").doc(usernameLower).get();
+      if (usernameDoc.exists) {
+        isTaken = true;
+      }
+    } catch (_) {}
+
+    // 2b. Also query profiles collection (handles existing profiles and case match)
+    if (!isTaken) {
+      try {
+        const snap = await db.collection("profiles")
+          .where("username", "==", username)
+          .limit(1)
+          .get();
+        if (!snap.empty) {
+          isTaken = true;
+        }
+      } catch (_) {}
+    }
+
+    // Check if user continued typing while async query was running
+    const currentInput = document.getElementById("regUsername")?.value.trim() || "";
+    if (currentInput !== username) {
+      return false; // Result is stale
+    }
+
+    if (isTaken) {
+      usernameValidationState = { status: "taken", checkedUsername: username, message: "Username already taken." };
+      updateUsernameUI("taken", "Username is already taken. Try another.");
+      return false;
+    } else {
+      usernameValidationState = { status: "available", checkedUsername: username, message: "Username is available!" };
+      updateUsernameUI("available", "Username is available!");
+      return true;
+    }
+  } catch (err) {
+    console.warn("Username availability lookup notice:", err);
+    usernameValidationState = { status: "available", checkedUsername: username, message: "Username format verified." };
+    updateUsernameUI("available", "Username format verified.");
+    return true;
+  }
+}
+
+// Bind Live Username Input Listeners
+const regUsernameElem = document.getElementById("regUsername");
+if (regUsernameElem) {
+  regUsernameElem.addEventListener("input", () => {
+    clearTimeout(usernameCheckTimeout);
+    const value = regUsernameElem.value.trim();
+    if (!value) {
+      usernameValidationState = { status: "idle", checkedUsername: "", message: "" };
+      updateUsernameUI("idle");
+      return;
+    }
+
+    // Immediate rule validation
+    const ruleCheck = validateUsernameRules(value);
+    if (!ruleCheck.valid) {
+      usernameValidationState = { status: "invalid", checkedUsername: value, message: ruleCheck.reason };
+      updateUsernameUI("invalid", ruleCheck.reason, "fa-circle-xmark");
+      return;
+    }
+
+    // Show checking spinner and debounce database call
+    updateUsernameUI("checking", "Checking availability...");
+    usernameCheckTimeout = setTimeout(() => {
+      checkUsernameAvailability(value);
+    }, 380);
+  });
+
+  regUsernameElem.addEventListener("blur", () => {
+    clearTimeout(usernameCheckTimeout);
+    const value = regUsernameElem.value.trim();
+    if (value && (usernameValidationState.checkedUsername !== value || usernameValidationState.status === "checking")) {
+      checkUsernameAvailability(value);
+    }
+  });
+}
+
+/* =========================================================
    REGISTRATION FLOW
    ========================================================= */
 
@@ -341,21 +631,50 @@ registerForm?.addEventListener("submit", async (event) => {
   const auth = getAuth();
   const db = getDb();
 
+  const fullNameElem = document.getElementById("regFullName");
   const usernameElem = document.getElementById("regUsername");
   const emailElem = document.getElementById("regEmail");
+  const phoneElem = document.getElementById("regPhone");
+  const orgElem = document.getElementById("regOrganization");
   const passwordElem = document.getElementById("regPassword");
+  const confirmPasswordElem = document.getElementById("regConfirmPassword");
 
+  const fullName = fullNameElem ? fullNameElem.value.trim() : "";
   const username = usernameElem ? usernameElem.value.trim() : "";
   const email = emailElem ? emailElem.value.trim() : "";
+  const phone = phoneElem ? phoneElem.value.trim() : "";
+  const organization = orgElem ? orgElem.value.trim() : "";
   const password = passwordElem ? passwordElem.value : "";
+  const confirmPassword = confirmPasswordElem ? confirmPasswordElem.value : "";
 
-  if (!username || username.length < 3) {
-    showMessage(registerMessage, "Username must contain at least 3 characters.");
-    usernameElem?.focus();
+  if (!fullName || fullName.length < 2) {
+    showMessage(registerMessage, "Please enter your full legal or analyst name.");
+    fullNameElem?.focus();
     return;
   }
 
-  if (!email) {
+  // Validate username rules
+  const ruleCheck = validateUsernameRules(username);
+  if (!ruleCheck.valid) {
+    showMessage(registerMessage, `Invalid Username: ${ruleCheck.reason}`);
+    usernameElem?.focus();
+    updateUsernameUI("invalid", ruleCheck.reason, "fa-circle-xmark");
+    return;
+  }
+
+  // Ensure availability verified
+  if (usernameValidationState.status !== "available" || usernameValidationState.checkedUsername !== username) {
+    setBtnLoading(registerBtn, registerBtnText, registerSpinner, true, "Checking username...");
+    const isAvail = await checkUsernameAvailability(username);
+    setBtnLoading(registerBtn, registerBtnText, registerSpinner, false, "Create Account");
+    if (!isAvail) {
+      showMessage(registerMessage, "This username is already taken or unavailable. Please choose another.");
+      usernameElem?.focus();
+      return;
+    }
+  }
+
+  if (!email || !email.includes("@")) {
     showMessage(registerMessage, "Please enter a valid email address.");
     emailElem?.focus();
     return;
@@ -364,6 +683,12 @@ registerForm?.addEventListener("submit", async (event) => {
   if (!password || password.length < 8) {
     showMessage(registerMessage, "Password must be at least 8 characters long.");
     passwordElem?.focus();
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    showMessage(registerMessage, "Passwords do not match. Please verify your password confirmation.");
+    confirmPasswordElem?.focus();
     return;
   }
 
@@ -376,15 +701,30 @@ registerForm?.addEventListener("submit", async (event) => {
 
     // 2. Set Firebase Auth Display Name
     try {
-      await user.updateProfile({ displayName: username });
+      await user.updateProfile({ displayName: fullName || username });
     } catch (_) {}
 
-    // 3. Create Profile document in Cloud Firestore
+    // 3. Atomically verify against registry collision
+    const usernameLower = username.toLowerCase();
+    try {
+      const existingDoc = await db.collection("usernames").doc(usernameLower).get();
+      if (existingDoc.exists && existingDoc.data()?.uid !== user.uid) {
+        await user.delete();
+        throw new Error("This username was just claimed by another user. Please choose a different username.");
+      }
+    } catch (claimErr) {
+      if (claimErr.message?.includes("just claimed")) throw claimErr;
+    }
+
+    // 4. Create Profile document in Cloud Firestore
     const newProfile = {
       id: user.uid,
+      uid: user.uid,
+      full_name: fullName,
       username: username,
       email: email,
-      full_name: username,
+      phone: phone || "",
+      organization: organization || "",
       role: "user",
       created_at: firebase.firestore.FieldValue.serverTimestamp(),
       updated_at: firebase.firestore.FieldValue.serverTimestamp()
@@ -396,11 +736,26 @@ registerForm?.addEventListener("submit", async (event) => {
       console.warn("Profile document insertion error:", dbErr);
     }
 
+    // 5. Enroll in usernames registry
+    try {
+      await db.collection("usernames").doc(usernameLower).set({
+        uid: user.uid,
+        username: username,
+        created_at: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (unErr) {
+      console.warn("Usernames registry enrollment warning:", unErr);
+    }
+
     sessionStorage.setItem("netarmor_profile", JSON.stringify({
       id: user.uid,
+      uid: user.uid,
       username: username,
+      full_name: fullName,
       role: "user",
-      email: email
+      email: email,
+      phone: phone || "",
+      organization: organization || ""
     }));
 
     showMessage(registerMessage, "Account created successfully! Entering security console...", "success");
@@ -479,6 +834,7 @@ function setupPasswordToggle(inputId, buttonId) {
 
 setupPasswordToggle("loginPassword", "loginPasswordToggle");
 setupPasswordToggle("regPassword", "registerPasswordToggle");
+setupPasswordToggle("regConfirmPassword", "registerConfirmPasswordToggle");
 
 /* =========================================================
    INITIALIZATION

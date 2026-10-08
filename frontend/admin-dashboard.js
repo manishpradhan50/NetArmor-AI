@@ -519,6 +519,14 @@ $("addUserForm")?.addEventListener("submit", async (e) => {
       updated_at: firebase.firestore.FieldValue.serverTimestamp()
     });
 
+    try {
+      await db.collection("usernames").doc(username.toLowerCase()).set({
+        uid: newUid,
+        username: username,
+        created_at: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (_) {}
+
     showToast(`User account '${email}' created successfully with role '${role}'!`, "success");
     closeModal("addUserModal");
     $("addUserForm")?.reset();
