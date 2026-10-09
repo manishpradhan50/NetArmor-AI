@@ -175,10 +175,206 @@ CREDENTIAL_KEYWORDS = [
 # ---------------------------------------------------------------------------
 # URL Normalization & Domain Parsing
 # ---------------------------------------------------------------------------
+REDIRECT_PARAM_NAMES = {
+    "redirect", "redirect_url", "redirect_uri", "next", "url", "return",
+    "return_url", "return_to", "dest", "destination", "goto", "target",
+    "link", "forward", "r", "u", "to"
+}
+
+def safe_decode_multilayer(text: str, max_layers: int = 4) -> dict:
+    """
+    Safely decode percent-encoded text across bounded layers.
+    Prevents infinite loops by capping layers.
+    Handles malformed percent-encoding gracefully.
+    Detects double-encoding, alphanumeric character obfuscation, and protocol strings.
+    """
+    if not text or not isinstance(text, str):
+        return {
+            "original": "",
+            "decoded": "",
+            "layers": 0,
+            "has_encoding": False,
+            "double_encoding_detected": False,
+            "has_alphanumeric_obfuscation": False,
+            "obfuscated_chars": "",
+            "has_encoded_protocol": False,
+            "history": []
+        }
+
+    current = text
+    history = [current]
+    layers = 0
+    has_double = bool(re.search(r'%25[0-9a-fA-F]{2}', text, re.IGNORECASE))
+    all_obfuscated_chars = []
+
+    initial_matches = list(re.finditer(r'%([0-9a-fA-F]{2})', text))
+    has_encoding = len(initial_matches) > 0
+
+    for m in initial_matches:
+        try:
+            b_val = int(m.group(1), 16)
+            if (48 <= b_val <= 57) or (65 <= b_val <= 90) or (97 <= b_val <= 122):
+                all_obfuscated_chars.append(chr(b_val))
+        except Exception:
+            pass
+
+    for _ in range(max_layers):
+        if not re.search(r'%[0-9a-fA-F]{2}', current):
+            break
+        try:
+            nxt = unquote(current, errors="replace")
+        except Exception:
+            break
+        if nxt == current:
+            break
+        layers += 1
+        current = nxt
+        history.append(current)
+
+        if re.search(r'%[0-9a-fA-F]{2}', current):
+            for m in re.finditer(r'%([0-9a-fA-F]{2})', current):
+                try:
+                    b_val = int(m.group(1), 16)
+                    if (48 <= b_val <= 57) or (65 <= b_val <= 90) or (97 <= b_val <= 122):
+                        all_obfuscated_chars.append(chr(b_val))
+                except Exception:
+                    pass
+
+    if layers >= 2:
+        has_double = True
+
+    has_proto = bool(re.search(r'https?%(?:3a|3A)%(?:2f|2F)', text, re.IGNORECASE)) or \
+                bool(re.search(r'%68%74%74%70', text, re.IGNORECASE)) or \
+                ("://" in current and "://" not in text)
+
+    return {
+        "original": text,
+        "decoded": current,
+        "layers": layers,
+        "has_encoding": has_encoding,
+        "double_encoding_detected": has_double,
+        "has_alphanumeric_obfuscation": len(all_obfuscated_chars) > 0,
+        "obfuscated_chars": "".join(all_obfuscated_chars),
+        "has_encoded_protocol": has_proto,
+        "history": history
+    }
+
+def analyze_redirects(query_str: str, base_host: str) -> dict:
+    """
+    Parse query parameters safely and inspect redirect parameters.
+    Detects if redirect target is percent-encoded, external, or targets sensitive paths.
+    Recursively inspects destination domain for PSL registered domain, subdomain,
+    and brand impersonation.
+    """
+    default_res = {
+        "redirect_detected": False,
+        "encoded_redirect_detected": False,
+        "param_name": None,
+        "raw_destination": None,
+        "decoded_destination": None,
+        "is_external": False,
+        "dest_host": None,
+        "destination_domain": None,
+        "destination_registered_domain": None,
+        "destination_subdomain": None,
+        "destination_brand": None,
+        "destination_brand_impersonation": False,
+        "destination_is_official": False,
+        "destination_is_ip": False,
+        "destination_brand_details": None,
+        "is_encoded": False,
+        "sensitive_keywords": []
+    }
+    if not query_str:
+        return default_res
+
+    param_pairs = [p.split("=", 1) for p in query_str.split("&") if p]
+    for pair in param_pairs:
+        k = pair[0]
+        raw_v = pair[1] if len(pair) > 1 else ""
+        k_lower = k.lower()
+        is_redirect_key = k_lower in REDIRECT_PARAM_NAMES
+        has_embedded_url = "://" in raw_v or "%3a%2f%2f" in raw_v.lower() or "%68%74%74%70" in raw_v.lower() or raw_v.startswith(("%2f", "%2F", "/"))
+
+        if is_redirect_key or (has_embedded_url and k_lower not in {"q", "query", "search", "s"}):
+            v_analysis = safe_decode_multilayer(raw_v)
+            decoded_dest = v_analysis["decoded"]
+            is_encoded = v_analysis["has_encoding"]
+
+            is_external = False
+            dest_host = None
+            dest_path = "/"
+            dest_reg_domain = None
+            dest_subdomain = ""
+            dest_brand = None
+            dest_brand_impersonation = False
+            dest_is_official = False
+            dest_is_ip = False
+            dest_brand_details = None
+
+            if decoded_dest.startswith(("http://", "https://", "//")):
+                try:
+                    url_to_parse = decoded_dest if "://" in decoded_dest else f"http:{decoded_dest}"
+                    dest_parts = urlsplit(url_to_parse)
+                    t_host = (dest_parts.netloc or "").split(":")[0].lower()
+                    dest_path = dest_parts.path or "/"
+                    if t_host:
+                        dest_host = t_host
+                        if t_host != base_host:
+                            is_external = True
+
+                        dest_norm = {
+                            "hostname": dest_host,
+                            "path": dest_path,
+                            "raw_url": decoded_dest,
+                            "decoded_url": decoded_dest,
+                            "scheme": dest_parts.scheme or "http",
+                            "port": None,
+                            "has_at_symbol": "@" in decoded_dest
+                        }
+                        dest_domain_info = extract_domain_info(dest_norm)
+                        dest_brand_eval = detect_brand_impersonation(dest_domain_info, dest_norm)
+
+                        dest_reg_domain = dest_domain_info["registered_domain"]
+                        dest_subdomain = dest_domain_info["subdomain"]
+                        dest_is_ip = dest_domain_info["is_ip"]
+                        dest_brand = dest_brand_eval["brand"]
+                        dest_brand_impersonation = dest_brand_eval["is_impersonation"]
+                        dest_is_official = dest_brand_eval["is_official"]
+                        dest_brand_details = dest_brand_eval["details"]
+                except Exception:
+                    pass
+
+            dest_lower = decoded_dest.lower()
+            matched_sens = [kw for kw in CREDENTIAL_KEYWORDS if kw in dest_lower]
+
+            return {
+                "redirect_detected": True,
+                "encoded_redirect_detected": is_encoded,
+                "param_name": k,
+                "raw_destination": raw_v,
+                "decoded_destination": decoded_dest,
+                "is_external": is_external,
+                "dest_host": dest_host,
+                "destination_domain": dest_host,
+                "destination_registered_domain": dest_reg_domain,
+                "destination_subdomain": dest_subdomain,
+                "destination_brand": dest_brand,
+                "destination_brand_impersonation": dest_brand_impersonation,
+                "destination_is_official": dest_is_official,
+                "destination_is_ip": dest_is_ip,
+                "destination_brand_details": dest_brand_details,
+                "is_encoded": is_encoded,
+                "sensitive_keywords": matched_sens
+            }
+
+    return default_res
+
 def normalize_url(raw_url: str) -> dict:
     """
-    Clean, validate, and normalize input URL into canonical parts.
+    Clean, validate, and normalize input URL into canonical and decoded parts.
     Handles missing schemes, percent encoding, userinfo (@), and port numbers.
+    Provides multi-layer safe decoding, encoded character analysis, and redirect inspection.
     """
     if not raw_url or not isinstance(raw_url, str):
         raise ValueError("URL must be a non-empty string.")
@@ -211,23 +407,40 @@ def normalize_url(raw_url: str) -> dict:
     if ":" in host_port:
         try:
             h_temp, p_temp = host_port.rsplit(":", 1)
-            # Ensure it's not an IPv6 address without brackets
             if p_temp.isdigit():
                 port = int(p_temp)
                 host = h_temp
         except Exception:
             pass
 
-    # Normalize hostname
-    host = unquote(host).strip().lower().rstrip(".")
-
-    # Remove enclosing IPv6 brackets if any
-    clean_host = host.strip("[]")
+    # Decode hostname using safe multi-layer decoding
+    host_analysis = safe_decode_multilayer(host)
+    clean_host = host_analysis["decoded"].strip().lower().rstrip(".").strip("[]")
 
     if not clean_host:
         raise ValueError("URL must contain a valid non-empty hostname.")
 
-    canonical_url = f"{scheme}://{host}"
+    # Multi-layer decoding of path, query, and fragment
+    raw_path = parts.path or "/"
+    raw_query = parts.query or ""
+    raw_fragment = parts.fragment or ""
+
+    path_analysis = safe_decode_multilayer(raw_path)
+    query_analysis = safe_decode_multilayer(raw_query)
+    fragment_analysis = safe_decode_multilayer(raw_fragment)
+
+    decoded_path = path_analysis["decoded"] or "/"
+    decoded_query = query_analysis["decoded"]
+    decoded_fragment = fragment_analysis["decoded"]
+
+    # Overall encoding metrics across entire URL
+    url_analysis = safe_decode_multilayer(cleaned)
+    max_layers = max(host_analysis["layers"], path_analysis["layers"], query_analysis["layers"], url_analysis["layers"])
+    encoding_detected = (max_layers > 0) or host_analysis["has_encoding"] or path_analysis["has_encoding"] or query_analysis["has_encoding"]
+    double_encoding_detected = host_analysis["double_encoding_detected"] or path_analysis["double_encoding_detected"] or query_analysis["double_encoding_detected"] or url_analysis["double_encoding_detected"]
+
+    # Canonical URL (original encoded parts preserved for display)
+    canonical_url = f"{scheme}://{clean_host}"
     if port and not ((scheme == "http" and port == 80) or (scheme == "https" and port == 443)):
         canonical_url += f":{port}"
     if parts.path:
@@ -237,17 +450,81 @@ def normalize_url(raw_url: str) -> dict:
     if parts.fragment:
         canonical_url += f"#{parts.fragment}"
 
+    # Reconstructed Decoded URL
+    decoded_url = f"{scheme}://{clean_host}"
+    if port and not ((scheme == "http" and port == 80) or (scheme == "https" and port == 443)):
+        decoded_url += f":{port}"
+    decoded_url += decoded_path
+    if decoded_query:
+        decoded_url += f"?{decoded_query}"
+    if decoded_fragment:
+        decoded_url += f"#{decoded_fragment}"
+
+    # Analyze redirect parameters
+    redirect_info = analyze_redirects(raw_query, clean_host)
+
+    # Determine primary decoded content highlight
+    decoded_content = None
+    if redirect_info["encoded_redirect_detected"] and redirect_info["decoded_destination"]:
+        decoded_content = redirect_info["decoded_destination"]
+    elif path_analysis["has_encoding"] and path_analysis["decoded"] != "/":
+        decoded_content = path_analysis["decoded"].lstrip("/")
+    elif query_analysis["has_encoding"] and query_analysis["decoded"]:
+        q_pairs = [p.split("=", 1) for p in query_analysis["decoded"].split("&") if p]
+        if q_pairs:
+            decoded_content = q_pairs[0][1] if len(q_pairs[0]) > 1 else q_pairs[0][0]
+        else:
+            decoded_content = query_analysis["decoded"]
+    elif encoding_detected:
+        decoded_content = decoded_url
+
+    has_any_obfuscation = path_analysis["has_alphanumeric_obfuscation"] or query_analysis["has_alphanumeric_obfuscation"]
+    has_proto = path_analysis["has_encoded_protocol"] or query_analysis["has_encoded_protocol"] or url_analysis["has_encoded_protocol"]
+
+    risk_contrib = "None"
+    if double_encoding_detected:
+        risk_contrib = "Moderate"
+    elif has_any_obfuscation or (redirect_info["encoded_redirect_detected"] and redirect_info["is_external"]):
+        risk_contrib = "Moderate"
+    elif redirect_info["encoded_redirect_detected"]:
+        risk_contrib = "Moderate"
+    elif encoding_detected:
+        risk_contrib = "None"
+
+    encoding_info = {
+        "encoding_detected": encoding_detected,
+        "encoding_layers": max_layers,
+        "double_encoding_detected": double_encoding_detected,
+        "decoded_url": decoded_url,
+        "decoded_path": decoded_path,
+        "decoded_query": decoded_query,
+        "decoded_fragment": decoded_fragment,
+        "decoded_content": decoded_content,
+        "risk_contribution": risk_contrib,
+        "path_alphanumeric_obfuscation": path_analysis["has_alphanumeric_obfuscation"],
+        "query_alphanumeric_obfuscation": query_analysis["has_alphanumeric_obfuscation"],
+        "path_obfuscated_chars": path_analysis["obfuscated_chars"],
+        "query_obfuscated_chars": query_analysis["obfuscated_chars"],
+        "has_encoded_protocol": has_proto,
+        "encoded_redirect_detected": redirect_info["encoded_redirect_detected"]
+    }
+
     return {
         "raw_url": raw_url,
         "canonical_url": canonical_url,
+        "decoded_url": decoded_url,
         "scheme": scheme,
         "hostname": clean_host,
         "port": port,
         "userinfo": userinfo,
-        "has_at_symbol": "@" in raw_url,
-        "path": parts.path or "/",
-        "query": parts.query or "",
-        "fragment": parts.fragment or ""
+        "has_at_symbol": "@" in raw_url or "@" in decoded_url,
+        "path": raw_path,
+        "query": raw_query,
+        "fragment": raw_fragment,
+        "decoded_path": decoded_path,
+        "decoded_query": decoded_query,
+        "encoding_info": encoding_info,
+        "redirect_info": redirect_info
     }
 
 
@@ -470,9 +747,13 @@ def detect_brand_impersonation(domain_info: dict, normalized: dict) -> dict:
 def detect_structural_anomalies(domain_info: dict, normalized: dict) -> list[dict]:
     """
     Examine structural anomalies: raw IPs, unusual ports, excessive subdomains,
-    credential keywords, @ signs, insecure protocol, and suspicious TLDs.
+    credential keywords, @ signs, insecure protocol, suspicious TLDs,
+    as well as URL encoding obfuscation, double encoding, and open redirects.
+    Calibrated to prevent false positives on benign encoded URLs and normal authentication endpoints.
     """
     anomalies = []
+    enc = normalized.get("encoding_info", {})
+    redir = normalized.get("redirect_info", {})
 
     # 1. Raw IP address host
     if domain_info["is_ip"]:
@@ -498,7 +779,7 @@ def detect_structural_anomalies(domain_info: dict, normalized: dict) -> list[dic
         anomalies.append({
             "vector": "domain_structure",
             "severity": "medium",
-            "risk_delta": 20,
+            "risk_delta": 15,
             "message": f"Connects over an unusual non-standard network port (:{port})."
         })
 
@@ -508,7 +789,7 @@ def detect_structural_anomalies(domain_info: dict, normalized: dict) -> list[dic
         anomalies.append({
             "vector": "domain_structure",
             "severity": "medium",
-            "risk_delta": 18,
+            "risk_delta": 15,
             "message": f"Excessive subdomain depth detected ({len(sub_labels)} sub-levels in host)."
         })
 
@@ -518,7 +799,7 @@ def detect_structural_anomalies(domain_info: dict, normalized: dict) -> list[dic
         anomalies.append({
             "vector": "domain_structure",
             "severity": "medium",
-            "risk_delta": 15,
+            "risk_delta": 12,
             "message": f"Unusually high hyphen count in hostname ({host.count('-')} hyphens)."
         })
 
@@ -528,19 +809,23 @@ def detect_structural_anomalies(domain_info: dict, normalized: dict) -> list[dic
         anomalies.append({
             "vector": "reputation_intelligence",
             "severity": "medium",
-            "risk_delta": 22,
+            "risk_delta": 20,
             "message": f"Uses high-risk top-level domain (.{suffix}) frequently associated with phishing."
         })
 
-    # 7. Sensitive credential-harvesting keywords
+    # 7. Sensitive credential keywords (non-punitive baseline for legitimate sites)
     raw_lower = normalized["raw_url"].lower()
-    matched_keywords = [kw for kw in CREDENTIAL_KEYWORDS if kw in raw_lower]
-    if matched_keywords:
+    decoded_lower = normalized["decoded_url"].lower()
+    matched_raw = [kw for kw in CREDENTIAL_KEYWORDS if kw in raw_lower]
+    matched_decoded = [kw for kw in CREDENTIAL_KEYWORDS if kw in decoded_lower]
+    all_matched = list(dict.fromkeys(matched_raw + matched_decoded))
+
+    if all_matched:
         anomalies.append({
             "vector": "domain_structure",
-            "severity": "medium",
-            "risk_delta": 20,
-            "message": f"Contains sensitive auth/credential keywords: {', '.join(matched_keywords[:3])}."
+            "severity": "low",
+            "risk_delta": 5,
+            "message": f"Contains sensitive auth/credential keywords: {', '.join(all_matched[:3])}."
         })
 
     # 8. Protocol security check (Insecure HTTP)
@@ -548,9 +833,58 @@ def detect_structural_anomalies(domain_info: dict, normalized: dict) -> list[dic
         anomalies.append({
             "vector": "domain_structure",
             "severity": "low",
-            "risk_delta": 10,
+            "risk_delta": 5,
             "message": "Insecure HTTP protocol (missing SSL/TLS transport encryption)."
         })
+
+    # 9. URL Encoding: Alphanumeric path characters encoded
+    if enc.get("path_alphanumeric_obfuscation"):
+        anomalies.append({
+            "vector": "encoding_obfuscation",
+            "severity": "low",
+            "risk_delta": 6,
+            "message": f"URL path utilizes percent-encoded alphanumeric characters (decodes to: '{enc.get('decoded_path')}')."
+        })
+
+    # 10. URL Encoding: Double encoding detected
+    if enc.get("double_encoding_detected"):
+        anomalies.append({
+            "vector": "encoding_obfuscation",
+            "severity": "medium",
+            "risk_delta": 12,
+            "message": f"Double percent-encoding detected ({enc.get('encoding_layers')} layers, e.g. %25 sequences)."
+        })
+
+    # 11. Redirect inspection
+    if redir.get("redirect_detected"):
+        if redir.get("destination_brand_impersonation"):
+            anomalies.append({
+                "vector": "domain_structure",
+                "severity": "high",
+                "risk_delta": 55,
+                "message": f"External redirect parameter '{redir['param_name']}' targets deceptive brand impersonation domain ('{redir['dest_host']}', targeting {redir['destination_brand']})."
+            })
+        elif redir.get("destination_is_ip"):
+            anomalies.append({
+                "vector": "domain_structure",
+                "severity": "high",
+                "risk_delta": 50,
+                "message": f"External redirect parameter '{redir['param_name']}' targets raw numeric IP destination ('{redir['dest_host']}')."
+            })
+        elif redir.get("is_external"):
+            anomalies.append({
+                "vector": "domain_structure",
+                "severity": "low",
+                "risk_delta": 10,
+                "message": f"Redirect parameter '{redir['param_name']}' targets external destination domain ('{redir['dest_host']}')."
+            })
+        else:
+            anomalies.append({
+                "vector": "domain_structure",
+                "severity": "low",
+                "risk_delta": 3,
+                "message": f"Internal redirect parameter '{redir['param_name']}' points to local path '{redir['decoded_destination']}'."
+            })
 
     return anomalies
 
@@ -561,35 +895,115 @@ def detect_structural_anomalies(domain_info: dict, normalized: dict) -> list[dic
 def evaluate_url_security(raw_url: str, ml_model_probability: float | None = None) -> dict:
     """
     Synthesize ML lexical predictions with explainable structural indicators,
-    brand impersonation intelligence, and public suffix registry data.
+    brand impersonation intelligence, URL encoding analysis, and public suffix registry data.
+    Implements generalized non-punitive multi-signal risk calculation adhering strictly to
+    standard security classifications without false positives.
     """
     normalized = normalize_url(raw_url)
     domain_info = extract_domain_info(normalized)
     brand_eval = detect_brand_impersonation(domain_info, normalized)
     anomalies = detect_structural_anomalies(domain_info, normalized)
+    enc = normalized["encoding_info"]
+    redir = normalized["redirect_info"]
 
-    # Categories for UI and API reporting
-    cat_structure = []
+    # Build categorized analysis entries
+    # 1. URL Encoding Breakdown
+    cat_encoding = []
+    if enc["encoding_detected"]:
+        cat_encoding.append("✓ Percent encoding detected")
+        cat_encoding.append("✓ Decoded successfully")
+        layer_str = "1 encoding layer" if enc["encoding_layers"] <= 1 else f"{enc['encoding_layers']} encoding layers"
+        if enc["double_encoding_detected"]:
+            cat_encoding.append(f"✓ Double encoding detected ({layer_str})")
+        else:
+            cat_encoding.append(f"✓ {layer_str}")
+        if enc.get("decoded_content") and enc.get("decoded_content") != raw_url:
+            cat_encoding.append(f"Decoded content: {enc['decoded_content']}")
+    else:
+        cat_encoding.append("✓ Standard URL (no percent encoding detected)")
+
+    # 2. Authentication Breakdown
+    cat_auth = []
+    raw_lower = normalized["raw_url"].lower()
+    decoded_lower = normalized["decoded_url"].lower()
+    matched_creds = list(dict.fromkeys(
+        [kw for kw in CREDENTIAL_KEYWORDS if kw in raw_lower] +
+        [kw for kw in CREDENTIAL_KEYWORDS if kw in decoded_lower]
+    ))
+    if matched_creds:
+        cat_auth.append(f"⚠ Login endpoint detected ({', '.join(matched_creds[:2])})")
+    else:
+        cat_auth.append("✓ No sensitive authentication endpoints detected")
+
+    # 3. Redirect Analysis Breakdown
+    cat_redirect = []
+    if redir["redirect_detected"]:
+        if redir["is_external"]:
+            if redir["encoded_redirect_detected"]:
+                cat_redirect.append("⚠ Encoded redirect detected")
+            cat_redirect.append("⚠ External destination detected")
+            cat_redirect.append(f"Destination domain: {redir['dest_host']}")
+            if redir.get("destination_brand_impersonation"):
+                cat_redirect.append(f"🚨 Destination impersonates brand: {redir['destination_brand']}")
+            elif redir.get("destination_is_official"):
+                cat_redirect.append(f"✓ Destination is verified official asset ({redir['destination_brand']})")
+        else:
+            if redir["encoded_redirect_detected"]:
+                cat_redirect.append("✓ Encoded redirect detected")
+            cat_redirect.append("✓ Decoded redirect remains on same domain")
+            cat_redirect.append("✓ No external redirect detected")
+    else:
+        cat_redirect.append("✓ No external redirect detected")
+
+    # 4. Brand Analysis Breakdown
     cat_brand = []
-    cat_model = []
-    cat_reputation = []
-    all_flags = []
+    if brand_eval["is_impersonation"]:
+        cat_brand.append(f"🚨 Brand impersonation detected: {brand_eval['brand']}")
+        cat_brand.append(brand_eval["details"])
+    elif redir.get("destination_brand_impersonation"):
+        cat_brand.append(f"🚨 Brand impersonation detected in redirect: {redir['destination_brand']}")
+        cat_brand.append(redir.get("destination_brand_details") or f"Destination deceptively mimics {redir['destination_brand']}.")
+    elif brand_eval["is_official"]:
+        cat_brand.append(f"✓ Verified authoritative domain for {brand_eval['brand']}")
+    else:
+        cat_brand.append("✓ No brand impersonation detected")
 
+    # 5. Domain Analysis Breakdown
+    cat_domain = []
+    cat_domain.append(f"✓ Registered domain: {domain_info['registered_domain']}")
+    if domain_info.get("subdomain"):
+        cat_domain.append(f"Subdomain: {domain_info['subdomain']}")
+    if domain_info.get("is_ip"):
+        cat_domain.append("⚠ Numeric IP address host")
+
+    # Legacy category groups for UI cards
+    cat_structure = [a["message"] for a in anomalies if a["vector"] == "domain_structure" or a["vector"] == "encoding_obfuscation"]
+    cat_reputation = [a["message"] for a in anomalies if a["vector"] == "reputation_intelligence"]
+    cat_model = []
+
+    # Build categorized flags
+    all_flags = []
+    for c in cat_encoding:
+        all_flags.append(f"URL Encoding: {c}")
+    for c in cat_auth:
+        all_flags.append(f"Authentication: {c}")
+    for c in cat_redirect:
+        all_flags.append(f"Redirect Analysis: {c}")
+    for c in cat_brand:
+        all_flags.append(f"Brand Analysis: {c}")
+    for c in cat_domain:
+        all_flags.append(f"Domain Analysis: {c}")
+
+    # -------------------------------------------------------------
     # 1. Authoritative Domain Evaluation
+    # -------------------------------------------------------------
     if brand_eval["is_official"] and not normalized["has_at_symbol"] and not domain_info["is_ip"]:
         risk_score = 2.5 if normalized["scheme"] == "https" else 15.0
         if normalized["port"] and normalized["port"] not in (80, 443):
             risk_score += 10.0
 
-        cat_reputation.append(f"Verified authoritative domain for {brand_eval['brand']}.")
-        if normalized["scheme"] == "https":
-            cat_structure.append("Standard TLS encryption verified.")
-        else:
-            cat_structure.append("Missing SSL/TLS encryption (plaintext HTTP).")
-
-        all_flags.append(f"Verified authoritative domain for {brand_eval['brand']}.")
-        if normalized["scheme"] != "https":
-            all_flags.append("Insecure HTTP protocol detected on authoritative domain.")
+        risk_summary = f"Low Risk — verified official domain asset for {brand_eval['brand']}."
+        all_flags.append(f"Risk Assessment: {risk_summary}")
 
         return {
             "target_url": raw_url,
@@ -603,54 +1017,57 @@ def evaluate_url_security(raw_url: str, ml_model_probability: float | None = Non
             "brand_detected": brand_eval["brand"],
             "brand_association": f"{brand_eval['brand']} (Official Authoritative Domain)",
             "is_official_domain": True,
+            "encoding_detected": enc["encoding_detected"],
+            "encoding_layers": enc["encoding_layers"],
+            "decoded_url": enc["decoded_url"],
+            "decoded_path": enc["decoded_path"],
+            "decoded_query": enc["decoded_query"],
+            "encoded_redirect_detected": redir["encoded_redirect_detected"],
+            "double_encoding_detected": enc["double_encoding_detected"],
+            "decoded_content": enc["decoded_content"],
+            "risk_contribution": enc["risk_contribution"],
+            "encoding_details": enc,
+            "redirect_details": redir,
+            "destination_domain": redir.get("dest_host"),
+            "destination_registered_domain": redir.get("destination_registered_domain"),
+            "destination_subdomain": redir.get("destination_subdomain"),
+            "destination_brand": redir.get("destination_brand"),
+            "destination_brand_impersonation": False,
+            "external_destination_detected": redir.get("is_external", False),
+            "risk_summary": risk_summary,
             "category_breakdown": {
-                "domain_structure": cat_structure,
+                "domain_structure": cat_structure if cat_structure else ["Standard TLS encryption verified."],
                 "brand_impersonation": ["No brand impersonation detected (official company asset)."],
                 "model_prediction": ["Authoritative reputation override applied."],
-                "reputation_intelligence": cat_reputation
+                "reputation_intelligence": [f"Verified authoritative domain for {brand_eval['brand']}."],
+                "url_encoding": cat_encoding,
+                "authentication": cat_auth,
+                "redirect_analysis": cat_redirect,
+                "brand_analysis": cat_brand,
+                "domain_analysis": cat_domain,
+                "risk_assessment": [risk_summary]
+            },
+            "categorized_analysis": {
+                "url_encoding": cat_encoding,
+                "authentication": cat_auth,
+                "redirect_analysis": cat_redirect,
+                "brand_analysis": cat_brand,
+                "domain_analysis": cat_domain,
+                "risk_assessment": [risk_summary]
             },
             "flags": all_flags
         }
 
-    # 2. Brand Impersonation Scenario (Deceptive subdomains, typosquatting)
+    # -------------------------------------------------------------
+    # 2. Host Brand Impersonation Scenario (Deceptive Subdomain / Lookalike)
+    # -------------------------------------------------------------
     if brand_eval["is_impersonation"]:
         base_risk = float(brand_eval["risk_impact"])
-        cat_brand.append(brand_eval["details"])
-        all_flags.append(brand_eval["details"])
-
-        # Add anomaly indicators
-        for a in anomalies:
-            if a["vector"] == "domain_structure":
-                cat_structure.append(a["message"])
-            elif a["vector"] == "reputation_intelligence":
-                cat_reputation.append(a["message"])
-            all_flags.append(a["message"])
-
-        # Extra risk for credential terms on impersonated domains
-        matched_creds = [kw for kw in CREDENTIAL_KEYWORDS if kw in normalized["raw_url"].lower()]
         if matched_creds:
-            base_risk += 8.0
-
-        if normalized["scheme"] == "http":
             base_risk += 4.0
-
-        # Incorporate ML model score if available
-        if ml_model_probability is not None:
-            cat_model.append(
-                f"ML lexical model baseline: {ml_model_probability:.1f}% "
-                f"(risk elevated due to brand impersonation indicators)."
-            )
-            final_risk = max(base_risk, ml_model_probability)
-        else:
-            final_risk = base_risk
-
-        final_risk = min(max(final_risk, 76.0), 98.0)
-        verdict = "Suspicious / Brand Impersonation"
-        confidence_level = "High Suspicion (Brand Impersonation)"
-
-        cat_reputation.append(
-            f"Domain '{domain_info['registered_domain']}' has no verified affiliation with {brand_eval['brand']}."
-        )
+        final_risk = min(max(base_risk, 76.0), 98.0)
+        risk_summary = f"High Risk — brand impersonation of {brand_eval['brand']} detected."
+        all_flags.append(f"Risk Assessment: {risk_summary}")
 
         return {
             "target_url": raw_url,
@@ -659,39 +1076,63 @@ def evaluate_url_security(raw_url: str, ml_model_probability: float | None = Non
             "registered_domain": domain_info["registered_domain"],
             "subdomain": domain_info["subdomain"],
             "risk_percentage": round(final_risk, 2),
-            "verdict": verdict,
-            "confidence_level": confidence_level,
+            "verdict": "Suspicious / Brand Impersonation",
+            "confidence_level": "High Suspicion (Brand Impersonation)",
             "brand_detected": brand_eval["brand"],
             "brand_association": f"{brand_eval['brand']} (Impersonation / Misleading Subdomain)",
             "is_official_domain": False,
+            "encoding_detected": enc["encoding_detected"],
+            "encoding_layers": enc["encoding_layers"],
+            "decoded_url": enc["decoded_url"],
+            "decoded_path": enc["decoded_path"],
+            "decoded_query": enc["decoded_query"],
+            "encoded_redirect_detected": redir["encoded_redirect_detected"],
+            "double_encoding_detected": enc["double_encoding_detected"],
+            "decoded_content": enc["decoded_content"],
+            "risk_contribution": enc["risk_contribution"],
+            "encoding_details": enc,
+            "redirect_details": redir,
+            "destination_domain": redir.get("dest_host"),
+            "destination_registered_domain": redir.get("destination_registered_domain"),
+            "destination_subdomain": redir.get("destination_subdomain"),
+            "destination_brand": redir.get("destination_brand"),
+            "destination_brand_impersonation": False,
+            "external_destination_detected": redir.get("is_external", False),
+            "risk_summary": risk_summary,
             "category_breakdown": {
                 "domain_structure": cat_structure if cat_structure else ["Misleading subdomain hierarchy mimics external domain."],
                 "brand_impersonation": cat_brand,
-                "model_prediction": cat_model if cat_model else ["Elevated risk due to deceptive brand mimicry."],
-                "reputation_intelligence": cat_reputation
+                "model_prediction": ["Elevated risk due to deceptive brand mimicry."],
+                "reputation_intelligence": [f"Domain '{domain_info['registered_domain']}' has no verified affiliation with {brand_eval['brand']}."],
+                "url_encoding": cat_encoding,
+                "authentication": cat_auth,
+                "redirect_analysis": cat_redirect,
+                "brand_analysis": cat_brand,
+                "domain_analysis": cat_domain,
+                "risk_assessment": [risk_summary]
+            },
+            "categorized_analysis": {
+                "url_encoding": cat_encoding,
+                "authentication": cat_auth,
+                "redirect_analysis": cat_redirect,
+                "brand_analysis": cat_brand,
+                "domain_analysis": cat_domain,
+                "risk_assessment": [risk_summary]
             },
             "flags": all_flags
         }
 
-    # 3. Structural Malicious Vectors (Raw IP, @ Obfuscation)
-    if domain_info["is_ip"] or normalized["has_at_symbol"]:
-        base_risk = 85.0
-        for a in anomalies:
-            if a["vector"] == "domain_structure":
-                cat_structure.append(a["message"])
-            elif a["vector"] == "reputation_intelligence":
-                cat_reputation.append(a["message"])
-            all_flags.append(a["message"])
-
-        if ml_model_probability is not None:
-            cat_model.append(f"ML lexical model output: {ml_model_probability:.1f}%.")
-            final_risk = max(base_risk, ml_model_probability)
-        else:
-            final_risk = base_risk
-
-        final_risk = min(final_risk, 99.0)
-        verdict = "Phishing / Malicious"
-        confidence_level = "High Risk (Critical Structural Vector)"
+    # -------------------------------------------------------------
+    # 3. Redirect Brand Impersonation Scenario (Case F)
+    # -------------------------------------------------------------
+    if redir.get("destination_brand_impersonation"):
+        dest_brand = redir.get("destination_brand")
+        base_risk = 78.0
+        if matched_creds:
+            base_risk += 4.0
+        final_risk = min(max(base_risk, 76.0), 96.0)
+        risk_summary = f"High Risk — redirect destination targets brand impersonation of {dest_brand}."
+        all_flags.append(f"Risk Assessment: {risk_summary}")
 
         return {
             "target_url": raw_url,
@@ -700,54 +1141,148 @@ def evaluate_url_security(raw_url: str, ml_model_probability: float | None = Non
             "registered_domain": domain_info["registered_domain"],
             "subdomain": domain_info["subdomain"],
             "risk_percentage": round(final_risk, 2),
-            "verdict": verdict,
-            "confidence_level": confidence_level,
-            "brand_detected": None,
-            "brand_association": "None / Direct Network Host",
+            "verdict": "Suspicious / Brand Impersonation",
+            "confidence_level": "High Suspicion (Redirect Brand Impersonation)",
+            "brand_detected": dest_brand,
+            "brand_association": f"{dest_brand} (Impersonation in Redirect Destination)",
             "is_official_domain": False,
+            "encoding_detected": enc["encoding_detected"],
+            "encoding_layers": enc["encoding_layers"],
+            "decoded_url": enc["decoded_url"],
+            "decoded_path": enc["decoded_path"],
+            "decoded_query": enc["decoded_query"],
+            "encoded_redirect_detected": redir["encoded_redirect_detected"],
+            "double_encoding_detected": enc["double_encoding_detected"],
+            "decoded_content": enc["decoded_content"],
+            "risk_contribution": "High",
+            "encoding_details": enc,
+            "redirect_details": redir,
+            "destination_domain": redir.get("dest_host"),
+            "destination_registered_domain": redir.get("destination_registered_domain"),
+            "destination_subdomain": redir.get("destination_subdomain"),
+            "destination_brand": dest_brand,
+            "destination_brand_impersonation": True,
+            "external_destination_detected": True,
+            "risk_summary": risk_summary,
             "category_breakdown": {
-                "domain_structure": cat_structure,
-                "brand_impersonation": ["No targeted brand identified in host."],
-                "model_prediction": cat_model if cat_model else ["Structural threat indicators override lexical model."],
-                "reputation_intelligence": cat_reputation if cat_reputation else ["Direct IP or obfuscated host bypasses domain registry."]
+                "domain_structure": cat_structure if cat_structure else ["Redirect parameter points to spoofed domain."],
+                "brand_impersonation": cat_brand,
+                "model_prediction": ["Elevated risk due to deceptive brand mimicry in redirect target."],
+                "reputation_intelligence": [f"Destination domain '{redir.get('dest_host')}' mimics {dest_brand} under unrelated registered domain '{redir.get('destination_registered_domain')}'."],
+                "url_encoding": cat_encoding,
+                "authentication": cat_auth,
+                "redirect_analysis": cat_redirect,
+                "brand_analysis": cat_brand,
+                "domain_analysis": cat_domain,
+                "risk_assessment": [risk_summary]
+            },
+            "categorized_analysis": {
+                "url_encoding": cat_encoding,
+                "authentication": cat_auth,
+                "redirect_analysis": cat_redirect,
+                "brand_analysis": cat_brand,
+                "domain_analysis": cat_domain,
+                "risk_assessment": [risk_summary]
             },
             "flags": all_flags
         }
 
-    # 4. Standard Domain Evaluation (Combining ML model + Structural Indicators)
+    # -------------------------------------------------------------
+    # 4. Structural Malicious Vectors on Host (Raw IP, @ Obfuscation)
+    # -------------------------------------------------------------
+    if domain_info["is_ip"] or normalized["has_at_symbol"]:
+        final_risk = 88.0
+        risk_summary = "High Risk — raw IP or credential obfuscation vector detected."
+        all_flags.append(f"Risk Assessment: {risk_summary}")
+
+        return {
+            "target_url": raw_url,
+            "canonical_url": normalized["canonical_url"],
+            "hostname": domain_info["hostname"],
+            "registered_domain": domain_info["registered_domain"],
+            "subdomain": domain_info["subdomain"],
+            "risk_percentage": round(final_risk, 2),
+            "verdict": "Phishing / Malicious",
+            "confidence_level": "High Risk (Critical Structural Vector)",
+            "brand_detected": None,
+            "brand_association": "None / Direct Network Host",
+            "is_official_domain": False,
+            "encoding_detected": enc["encoding_detected"],
+            "encoding_layers": enc["encoding_layers"],
+            "decoded_url": enc["decoded_url"],
+            "decoded_path": enc["decoded_path"],
+            "decoded_query": enc["decoded_query"],
+            "encoded_redirect_detected": redir["encoded_redirect_detected"],
+            "double_encoding_detected": enc["double_encoding_detected"],
+            "decoded_content": enc["decoded_content"],
+            "risk_contribution": enc["risk_contribution"],
+            "encoding_details": enc,
+            "redirect_details": redir,
+            "destination_domain": redir.get("dest_host"),
+            "destination_registered_domain": redir.get("destination_registered_domain"),
+            "destination_subdomain": redir.get("destination_subdomain"),
+            "destination_brand": redir.get("destination_brand"),
+            "destination_brand_impersonation": False,
+            "external_destination_detected": redir.get("is_external", False),
+            "risk_summary": risk_summary,
+            "category_breakdown": {
+                "domain_structure": cat_structure,
+                "brand_impersonation": ["No targeted brand identified in host."],
+                "model_prediction": ["Structural threat indicators override lexical model."],
+                "reputation_intelligence": ["Direct IP or obfuscated host bypasses domain registry."],
+                "url_encoding": cat_encoding,
+                "authentication": cat_auth,
+                "redirect_analysis": cat_redirect,
+                "brand_analysis": cat_brand,
+                "domain_analysis": cat_domain,
+                "risk_assessment": [risk_summary]
+            },
+            "categorized_analysis": {
+                "url_encoding": cat_encoding,
+                "authentication": cat_auth,
+                "redirect_analysis": cat_redirect,
+                "brand_analysis": cat_brand,
+                "domain_analysis": cat_domain,
+                "risk_assessment": [risk_summary]
+            },
+            "flags": all_flags
+        }
+
+    # -------------------------------------------------------------
+    # 5. Standard Domain Evaluation (Combining ML + Structural Indicators)
+    # -------------------------------------------------------------
     structural_deltas = sum(a["risk_delta"] for a in anomalies)
-    for a in anomalies:
-        if a["vector"] == "domain_structure":
-            cat_structure.append(a["message"])
-        elif a["vector"] == "reputation_intelligence":
-            cat_reputation.append(a["message"])
-        all_flags.append(a["message"])
-
-    if ml_model_probability is not None:
-        cat_model.append(f"ML XGBoost lexical classifier: {ml_model_probability:.1f}% baseline.")
-        # Guard against ML model single-dot artifact when zero suspicious indicators exist
-        if structural_deltas == 0 and normalized["scheme"] == "https":
-            computed_risk = min(ml_model_probability, 15.0)
-        elif structural_deltas <= 10 and normalized["scheme"] == "https":
-            computed_risk = min(ml_model_probability * 0.35 + structural_deltas, 35.0)
-        else:
-            computed_risk = (ml_model_probability * 0.45) + (min(structural_deltas, 70.0) * 0.55)
+    if structural_deltas == 0:
+        computed_risk = 5.0
+        if ml_model_probability is not None:
+            computed_risk += min(ml_model_probability * 0.05, 3.0)
+        risk_summary = "Low Risk — no strong phishing indicators detected."
+        verdict = "Safe / Legitimate"
+        confidence_level = "Low Risk"
+    elif structural_deltas <= 15:
+        computed_risk = 8.0 + structural_deltas
+        if ml_model_probability is not None:
+            computed_risk += min(ml_model_probability * 0.05, 5.0)
+        computed_risk = min(computed_risk, 28.0)
+        risk_summary = "Low Risk — no strong phishing indicators detected."
+        verdict = "Safe / Legitimate"
+        confidence_level = "Low Risk"
+    elif structural_deltas < 40:
+        computed_risk = 15.0 + (structural_deltas * 0.65)
+        if ml_model_probability is not None:
+            computed_risk += min(ml_model_probability * 0.04, 4.0)
+        computed_risk = min(computed_risk, 42.0)
+        risk_summary = "Moderate Risk — unusual encoding or parameters detected without brand impersonation."
+        verdict = "Safe / Legitimate"
+        confidence_level = "Moderate Risk"
     else:
-        cat_model.append("Heuristic structural analyzer applied (ML model offline).")
-        computed_risk = 8.0 + min(structural_deltas, 75.0)
+        computed_risk = min(52.0 + (structural_deltas - 40) * 0.8, 88.0)
+        risk_summary = "High Risk — multiple suspicious structural vectors detected."
+        verdict = "Phishing / Malicious"
+        confidence_level = "High Risk (Multiple Structural Anomalies)"
 
-    computed_risk = min(max(computed_risk, 2.5), 98.0)
-    verdict = "Phishing / Malicious" if computed_risk >= 50.0 else "Safe / Legitimate"
-    confidence_level = "Estimated Threat Risk" if computed_risk >= 50.0 else "Low Risk"
-
-    if not all_flags:
-        all_flags.append("No suspicious structural or brand anomalies detected.")
-    if not cat_structure:
-        cat_structure.append("Standard domain topology and clean syntax.")
-    if not cat_brand:
-        cat_brand.append("No brand impersonation or trademark mimicry discovered.")
-    if not cat_reputation:
-        cat_reputation.append("Standard registered public suffix.")
+    all_flags.append(f"Risk Assessment: {risk_summary}")
+    cat_model.append(f"ML XGBoost lexical classifier: {ml_model_probability:.1f}% baseline." if ml_model_probability is not None else "Heuristic structural analyzer applied.")
 
     return {
         "target_url": raw_url,
@@ -761,11 +1296,43 @@ def evaluate_url_security(raw_url: str, ml_model_probability: float | None = Non
         "brand_detected": None,
         "brand_association": "None / Standard Domain",
         "is_official_domain": False,
+        "encoding_detected": enc["encoding_detected"],
+        "encoding_layers": enc["encoding_layers"],
+        "decoded_url": enc["decoded_url"],
+        "decoded_path": enc["decoded_path"],
+        "decoded_query": enc["decoded_query"],
+        "encoded_redirect_detected": redir["encoded_redirect_detected"],
+        "double_encoding_detected": enc["double_encoding_detected"],
+        "decoded_content": enc["decoded_content"],
+        "risk_contribution": enc["risk_contribution"],
+        "encoding_details": enc,
+        "redirect_details": redir,
+        "destination_domain": redir.get("dest_host"),
+        "destination_registered_domain": redir.get("destination_registered_domain"),
+        "destination_subdomain": redir.get("destination_subdomain"),
+        "destination_brand": redir.get("destination_brand"),
+        "destination_brand_impersonation": False,
+        "external_destination_detected": redir.get("is_external", False),
+        "risk_summary": risk_summary,
         "category_breakdown": {
-            "domain_structure": cat_structure,
+            "domain_structure": cat_structure if cat_structure else ["Standard domain topology and clean syntax."],
             "brand_impersonation": cat_brand,
             "model_prediction": cat_model,
-            "reputation_intelligence": cat_reputation
+            "reputation_intelligence": cat_reputation if cat_reputation else ["Standard registered public suffix."],
+            "url_encoding": cat_encoding,
+            "authentication": cat_auth,
+            "redirect_analysis": cat_redirect,
+            "brand_analysis": cat_brand,
+            "domain_analysis": cat_domain,
+            "risk_assessment": [risk_summary]
+        },
+        "categorized_analysis": {
+            "url_encoding": cat_encoding,
+            "authentication": cat_auth,
+            "redirect_analysis": cat_redirect,
+            "brand_analysis": cat_brand,
+            "domain_analysis": cat_domain,
+            "risk_assessment": [risk_summary]
         },
         "flags": all_flags
     }

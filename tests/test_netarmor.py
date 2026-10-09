@@ -378,6 +378,122 @@ class TestNetArmorComprehensive(unittest.TestCase):
             self.assertEqual(data["verdict"], "Safe / Legitimate", f"{u} must be Safe / Legitimate")
             self.assertLess(data["risk_percentage"], 35.0, f"{u} risk score must be low")
 
+    # -------------------------------------------------------------
+    # TIER 7: Advanced URL Encoding & Multi-Signal Redirect Risk Engine (need.txt Cases A-G)
+    # -------------------------------------------------------------
+    def test_27_case_a_normal_encoded_url(self):
+        """Case A: Normal encoded URL -> Low risk / legitimate. Do NOT flag simply because % exists."""
+        url = "https://example.com/search?q=hello%20world"
+        res = self.client.post("/api/predict-url", json={"url": url})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data.get("encoding_detected"), "Percent encoding must be detected")
+        self.assertEqual(data.get("decoded_content"), "hello world")
+        self.assertEqual(data.get("verdict"), "Safe / Legitimate")
+        self.assertLess(data.get("risk_percentage"), 25.0, "Must be low risk")
+        self.assertFalse(data.get("double_encoding_detected"))
+        self.assertFalse(data.get("external_destination_detected"))
+
+    def test_28_case_b_normal_login(self):
+        """Case B: Normal login -> Low risk or moderate risk. Do NOT classify as phishing only because login exists."""
+        url = "https://example.com/login"
+        res = self.client.post("/api/predict-url", json={"url": url})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data.get("verdict"), "Safe / Legitimate")
+        self.assertLess(data.get("risk_percentage"), 35.0, "Login alone must not cause high risk")
+        self.assertEqual(data.get("decoded_path"), "/login")
+        self.assertIn("login", " ".join(data.get("flags", [])).lower())
+
+    def test_29_case_c_encoded_login(self):
+        """Case C: Encoded login -> Decodes to /login. Encoding detected, but encoding alone does not cause high risk."""
+        url = "https://example.com/%6c%6f%67%69%6e"
+        res = self.client.post("/api/predict-url", json={"url": url})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data.get("encoding_detected"), "Encoding must be detected")
+        self.assertEqual(data.get("decoded_path"), "/login")
+        self.assertEqual(data.get("decoded_url"), "https://example.com/login")
+        self.assertEqual(data.get("verdict"), "Safe / Legitimate")
+        self.assertLess(data.get("risk_percentage"), 35.0, "Encoding alone must not cause high risk")
+
+    def test_30_case_d_encoded_internal_redirect(self):
+        """Case D: Encoded internal redirect -> Decoded redirect remains on same domain; not external phishing."""
+        url = "https://example.com/login?redirect=%2Faccount%2Fverify"
+        res = self.client.post("/api/predict-url", json={"url": url})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data.get("encoding_detected"))
+        self.assertTrue(data.get("encoded_redirect_detected"))
+        self.assertFalse(data.get("external_destination_detected"), "Internal redirect must not be external")
+        self.assertEqual(data.get("verdict"), "Safe / Legitimate")
+        self.assertLess(data.get("risk_percentage"), 35.0)
+
+    def test_31_case_e_encoded_external_redirect(self):
+        """Case E: Encoded external redirect -> Decodes to https://google.com, external destination detected, NOT confirmed phishing."""
+        url = "https://example.com/verify?next=https%3A%2F%2Fgoogle.com"
+        res = self.client.post("/api/predict-url", json={"url": url})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data.get("encoding_detected"))
+        self.assertTrue(data.get("encoded_redirect_detected"))
+        self.assertTrue(data.get("external_destination_detected"))
+        self.assertEqual(data.get("destination_domain"), "google.com")
+        self.assertEqual(data.get("destination_registered_domain"), "google.com")
+        self.assertEqual(data.get("verdict"), "Safe / Legitimate")
+        self.assertLess(data.get("risk_percentage"), 50.0, "Benign external redirect must not be marked phishing")
+
+    def test_32_case_f_suspicious_external_redirect(self):
+        """Case F: Suspicious external redirect -> Decodes redirect, extracts reg dom, subdomain, brand impersonation detected, substantially higher risk (>= 75%)."""
+        url = "https://example.com/login?redirect=https%3A%2F%2Fgoogle.com.example.com%2Flogin"
+        res = self.client.post("/api/predict-url", json={"url": url})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data.get("encoding_detected"))
+        self.assertTrue(data.get("encoded_redirect_detected"))
+        self.assertTrue(data.get("external_destination_detected"))
+        self.assertEqual(data.get("destination_domain"), "google.com.example.com")
+        self.assertEqual(data.get("destination_registered_domain"), "example.com")
+        self.assertEqual(data.get("destination_subdomain"), "google.com")
+        self.assertEqual(data.get("destination_brand"), "Google")
+        self.assertTrue(data.get("destination_brand_impersonation"), "Must detect brand impersonation in redirect destination")
+        self.assertGreaterEqual(data.get("risk_percentage"), 75.0, "Overall risk must be substantially higher")
+        self.assertEqual(data.get("verdict"), "Suspicious / Brand Impersonation")
+
+    def test_33_case_g_double_encoded_url(self):
+        """Case G: Double encoded URL -> Detect double encoding (2 layers), safely decode to login, do NOT classify as phishing solely because double encoded."""
+        url = "https://example.com/%256c%256f%2567%2569%256e"
+        res = self.client.post("/api/predict-url", json={"url": url})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data.get("encoding_detected"))
+        self.assertTrue(data.get("double_encoding_detected"), "Double encoding must be detected")
+        self.assertEqual(data.get("encoding_layers"), 2, "Must identify exactly 2 encoding layers")
+        self.assertEqual(data.get("decoded_path"), "/login")
+        self.assertEqual(data.get("verdict"), "Safe / Legitimate", "Double encoding alone on clean domain must not be phishing")
+        self.assertLess(data.get("risk_percentage"), 50.0)
+
+    def test_34_categorized_ui_explanation(self):
+        """Verify categorized explanation structure across URL Encoding, Authentication, Redirect, Brand, Domain, and Risk."""
+        url = "https://example.com/%6c%6f%67%69%6e"
+        res = self.client.post("/api/predict-url", json={"url": url})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        cats = data.get("categorized_analysis", {})
+        self.assertIn("url_encoding", cats)
+        self.assertIn("authentication", cats)
+        self.assertIn("redirect_analysis", cats)
+        self.assertIn("brand_analysis", cats)
+        self.assertIn("domain_analysis", cats)
+        self.assertIn("risk_assessment", cats)
+        self.assertTrue(any("Percent encoding detected" in s for s in cats["url_encoding"]))
+        self.assertTrue(any("Login endpoint detected" in s for s in cats["authentication"]))
+        self.assertTrue(any("No external redirect detected" in s for s in cats["redirect_analysis"]))
+        self.assertTrue(any("No brand impersonation detected" in s for s in cats["brand_analysis"]))
+        self.assertTrue(any("Registered domain: example.com" in s for s in cats["domain_analysis"]))
+        self.assertTrue(any("Low Risk" in s for s in cats["risk_assessment"]))
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
 

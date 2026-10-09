@@ -448,11 +448,47 @@ async function analyzeURL() {
     renderAuditList(auditModel, cats.model_prediction, "Model baseline within expected limits.");
     renderAuditList(auditReputation, cats.reputation_intelligence, "Standard registry status.");
 
-    // Populate Full Flags
+    // Populate Full Flags & Categorized Analysis (Matching need.txt specification)
     if (flags) {
-      flags.innerHTML = (data.flags && data.flags.length > 0)
-        ? data.flags.map(f => `<li>${escapeHtml(f)}</li>`).join("")
-        : "<li>No malicious anomalies detected in URL structure.</li>";
+      if (data.categorized_analysis) {
+        const catMap = [
+          { key: "url_encoding", title: "URL Encoding", icon: "fa-code" },
+          { key: "authentication", title: "Authentication", icon: "fa-key" },
+          { key: "redirect_analysis", title: "Redirect Analysis", icon: "fa-arrow-right-arrow-left" },
+          { key: "brand_analysis", title: "Brand Analysis", icon: "fa-id-badge" },
+          { key: "domain_analysis", title: "Domain Analysis", icon: "fa-globe" },
+          { key: "risk_assessment", title: "Risk Assessment", icon: "fa-shield-halved" }
+        ];
+
+        let html = "";
+        catMap.forEach((group, idx) => {
+          const items = data.categorized_analysis[group.key];
+          if (items && items.length > 0) {
+            const topMargin = idx === 0 ? "4px" : "12px";
+            html += `<li class="cat-group-header" style="margin-top: ${topMargin}; margin-bottom: 4px; font-weight: 700; color: var(--neon-green); list-style: none;"><i class="fa-solid ${group.icon}" style="margin-right: 6px;"></i> ${escapeHtml(group.title)}</li>`;
+            items.forEach(item => {
+              let iconHtml = "";
+              let text = item;
+              if (text.startsWith("✓")) {
+                iconHtml = '<span style="color: var(--safe); font-weight: bold; margin-right: 6px;">✓</span>';
+                text = text.replace(/^✓\s*/, "");
+              } else if (text.startsWith("⚠")) {
+                iconHtml = '<span style="color: var(--warning); font-weight: bold; margin-right: 6px;">⚠</span>';
+                text = text.replace(/^⚠\s*/, "");
+              } else if (text.startsWith("🚨")) {
+                iconHtml = '<span style="color: var(--danger); font-weight: bold; margin-right: 6px;">🚨</span>';
+                text = text.replace(/^🚨\s*/, "");
+              }
+              html += `<li style="padding-left: 12px; margin-bottom: 4px; list-style: none;">${iconHtml}${escapeHtml(text)}</li>`;
+            });
+          }
+        });
+        flags.innerHTML = html;
+      } else if (data.flags && data.flags.length > 0) {
+        flags.innerHTML = data.flags.map(f => `<li>${escapeHtml(f)}</li>`).join("");
+      } else {
+        flags.innerHTML = "<li>No malicious anomalies detected in URL structure.</li>";
+      }
     }
 
     await recordScan("url", url, data.risk_percentage);
